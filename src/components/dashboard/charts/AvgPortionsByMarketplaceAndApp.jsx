@@ -38,10 +38,10 @@ export default function AvgPortionsByMarketplaceAndApp({ records }) {
         <CardTitle className="text-sm font-semibold text-slate-700">Avg Portions/Day by Marketplace &amp; Mobile App</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 70 }}>
+        <ResponsiveContainer width="100%" height={340}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 100 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="mkt" tick={{ fontSize: 10, fill: "#64748b" }} angle={-40} textAnchor="end" interval={0} />
+            <XAxis dataKey="mkt" tick={{ fontSize: 9, fill: "#64748b" }} angle={-45} textAnchor="end" interval={0} height={100} />
             <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
             <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
