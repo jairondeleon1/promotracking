@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
-import { BarChart2, Upload, Table2, TrendingUp, RefreshCw } from "lucide-react";
+import { BarChart2, Upload, Table2, TrendingUp, RefreshCw, Download } from "lucide-react";
+import { exportToPptx } from "../utils/exportToPptx";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import StatsOverview from "../components/dashboard/StatsOverview";
@@ -12,6 +14,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [months, setMonths] = useState([]);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    const filtered = selectedMonth === "all" ? records : records.filter(r => r.upload_month === selectedMonth);
+    await exportToPptx(filtered, selectedMonth);
+    setExporting(false);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -39,6 +49,10 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={load} className="gap-2 text-slate-600">
               <RefreshCw className="w-4 h-4" /> Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || records.length === 0} className="gap-2 text-slate-600">
+              {exporting ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
+              Export PPTX
             </Button>
             <Link to="/upload">
               <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
