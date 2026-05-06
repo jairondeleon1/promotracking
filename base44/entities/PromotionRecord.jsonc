@@ -1,0 +1,58 @@
+{
+  "name": "PromotionRecord",
+  "type": "object",
+  "properties": {
+    "marketplace": {
+      "type": "string",
+      "description": "Marketplace / location name"
+    },
+    "region": {
+      "type": "string",
+      "description": "Region / division"
+    },
+    "manager_name": {
+      "type": "string"
+    },
+    "promotion": {
+      "type": "string",
+      "description": "Promotion name"
+    },
+    "date_run": {
+      "type": "string",
+      "description": "Date the promotion was run"
+    },
+    "day_of_week": {
+      "type": "string"
+    },
+    "price_sold": {
+      "type": "string"
+    },
+    "portions_sold": {
+      "type": "number"
+    },
+    "total_promotion_sales": {
+      "type": "number"
+    },
+    "total_marketplace_sales_week": {
+      "type": "number"
+    },
+    "mobile_app": {
+      "type": "string"
+    },
+    "promoted_on_app": {
+      "type": "string"
+    },
+    "comments": {
+      "type": "string"
+    },
+    "upload_month": {
+      "type": "string",
+      "description": "Month/Year label for this upload batch, e.g. April 2025"
+    },
+    "upload_batch_id": {
+      "type": "string",
+      "description": "UUID identifying the upload batch"
+    }
+  },
+  "required": []
+}
