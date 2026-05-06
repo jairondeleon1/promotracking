@@ -118,10 +118,9 @@ function buildAvgByPromotionRegionSeries(records) {
 
 /** Adds the dark navy header bar + bold uppercase title to a slide */
 function addSlideHeader(slide, title) {
-  // Full-width dark header bar
   slide.addShape("rect", { x: 0, y: 0, w: "100%", h: 0.95, fill: { color: NAVY } });
   slide.addText(title.toUpperCase(), {
-    x: 0.4, y: 0.1, w: 9.2, h: 0.75,
+    x: 0.4, y: 0.1, w: 12.5, h: 0.75,
     fontSize: 22, bold: true, color: WHITE, fontFace: "Calibri",
   });
 }
@@ -173,15 +172,15 @@ function addKpiSlide(pptx, records) {
     { label: "APP PROMOTION RATE", value: `${appRate}%` },
   ];
 
-  // 5 dark cards in a row — fill full slide width and height
-  const totalW = 9.6;
-  const gap = 0.08;
-  const cardW = (totalW - gap * 4) / 5;
-  const startX = 0.2;
+  // 5 dark cards spanning the full slide width (LAYOUT_WIDE = 13.33" wide)
+  const slideW = 13.33;
+  const margin = 0.2;
+  const gap = 0.1;
+  const cardW = (slideW - margin * 2 - gap * 4) / 5;
   const cardH = 5.9;
   const cardY = 1.1;
   kpis.forEach((kpi, i) => {
-    const x = startX + i * (cardW + gap);
+    const x = margin + i * (cardW + gap);
     slide.addShape("rect", { x, y: cardY, w: cardW, h: cardH, fill: { color: NAVY }, rounding: true });
     slide.addText(kpi.value, {
       x, y: cardY + 2.0, w: cardW, h: 1.1,
@@ -202,7 +201,7 @@ function addBarChartSlide(pptx, title, description, seriesName, chartData, color
 
   if (description) {
     slide.addText(description, {
-      x: 0.4, y: 0.98, w: 9.2, h: 0.38,
+      x: 0.4, y: 0.98, w: 12.5, h: 0.38,
       fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
     });
   }
@@ -214,7 +213,7 @@ function addBarChartSlide(pptx, title, description, seriesName, chartData, color
   }];
 
   slide.addChart(pptx.ChartType.bar, chartDataFormatted, {
-    x: 0.4, y: 1.38, w: 9.2, h: 5.7,
+    x: 0.4, y: 1.38, w: 12.5, h: 5.7,
     barDir: "bar",
     chartColors: [color || NAVY],
     showLegend: false,
@@ -236,7 +235,7 @@ function addGroupedBarChartSlide(pptx, title, description, groups, seriesData) {
 
   if (description) {
     slide.addText(description, {
-      x: 0.4, y: 0.98, w: 9.2, h: 0.38,
+      x: 0.4, y: 0.98, w: 12.5, h: 0.38,
       fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
     });
   }
@@ -245,7 +244,7 @@ function addGroupedBarChartSlide(pptx, title, description, groups, seriesData) {
   const chartData = seriesData.map(s => ({ name: s.name, labels: groups, values: s.values }));
 
   slide.addChart(pptx.ChartType.bar, chartData, {
-    x: 0.4, y: 1.38, w: 9.2, h: 5.7,
+    x: 0.4, y: 1.38, w: 12.5, h: 5.7,
     barDir: "col",
     barGrouping: "stacked",
     chartColors: COLORS_LIST.slice(0, seriesData.length),
@@ -268,7 +267,7 @@ function addTableSlide(pptx, records) {
   addFooterBar(slide);
 
   slide.addText("Ranks the top promotion + region combinations by total portions sold, including average daily performance.", {
-    x: 0.4, y: 0.98, w: 9.2, h: 0.38,
+    x: 0.4, y: 0.98, w: 12.5, h: 0.38,
     fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
   });
 
@@ -302,9 +301,9 @@ function addTableSlide(pptx, records) {
   ];
 
   slide.addTable(tableRows, {
-    x: 0.4, y: 1.38, w: 9.2,
+    x: 0.4, y: 1.38, w: 12.5,
     border: { color: "E2E8F0", pt: 0.5 },
-    colW: [3, 2.2, 1.5, 1.5, 1],
+    colW: [4.2, 3.0, 2.0, 2.0, 1.3],
   });
 }
 
@@ -315,7 +314,7 @@ function addMarketplaceTableSlide(pptx, records) {
   addFooterBar(slide);
 
   slide.addText("Ranks the top marketplace + mobile app combinations by total portions sold and daily average.", {
-    x: 0.4, y: 0.98, w: 9.2, h: 0.38,
+    x: 0.4, y: 0.98, w: 12.5, h: 0.38,
     fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
   });
 
@@ -351,9 +350,9 @@ function addMarketplaceTableSlide(pptx, records) {
   ];
 
   slide.addTable(tableRows, {
-    x: 0.4, y: 1.38, w: 9.2,
+    x: 0.4, y: 1.38, w: 12.5,
     border: { color: "E2E8F0", pt: 0.5 },
-    colW: [3.2, 2, 1.5, 1.5, 1],
+    colW: [4.5, 2.5, 2.0, 2.0, 1.5],
   });
 }
 
