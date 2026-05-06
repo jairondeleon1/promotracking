@@ -126,30 +126,29 @@ function addSlideHeader(slide, title) {
   });
 }
 
-/** Adds a small gold accent bar at the bottom of a slide */
+/** Adds a small gold accent bar at the very bottom of a slide */
 function addFooterBar(slide) {
-  slide.addShape("rect", { x: 0, y: 5.35, w: "100%", h: 0.15, fill: { color: GOLD } });
+  slide.addShape("rect", { x: 0, y: 7.3, w: "100%", h: 0.2, fill: { color: GOLD } });
 }
 
 // ── Slide builders ───────────────────────────────────────────────────────────
 
 function addTitleSlide(pptx, month) {
   const slide = pptx.addSlide();
-  // Full dark background
   slide.background = { color: NAVY };
-  // Gold accent stripe
-  slide.addShape("rect", { x: 0, y: 4.8, w: "100%", h: 0.2, fill: { color: GOLD } });
-  slide.addText("PROMOTION TRACKING\nDASHBOARD", {
-    x: 0.6, y: 1.4, w: 8.8, h: 2,
-    fontSize: 40, bold: true, color: WHITE, fontFace: "Calibri", align: "left", valign: "middle",
+  // Gold accent stripe at very bottom
+  slide.addShape("rect", { x: 0, y: 7.3, w: "100%", h: 0.2, fill: { color: GOLD } });
+  slide.addText("PROMOTION TRACKING", {
+    x: 0.6, y: 1.8, w: 8.8, h: 1.0,
+    fontSize: 44, bold: true, color: WHITE, fontFace: "Calibri", align: "left",
   });
   slide.addText((month !== "all" ? month : "All Months").toUpperCase(), {
-    x: 0.6, y: 3.5, w: 5, h: 0.5,
-    fontSize: 16, color: GOLD, fontFace: "Calibri", bold: true,
+    x: 0.6, y: 2.9, w: 8.8, h: 0.7,
+    fontSize: 28, color: GOLD, fontFace: "Calibri", bold: true,
   });
   slide.addText(`Generated ${new Date().toLocaleDateString()}`, {
-    x: 0.6, y: 4.1, w: 5, h: 0.4,
-    fontSize: 11, color: "8DA4BF", fontFace: "Calibri",
+    x: 0.6, y: 3.75, w: 5, h: 0.4,
+    fontSize: 12, color: "8DA4BF", fontFace: "Calibri",
   });
 }
 
@@ -174,20 +173,21 @@ function addKpiSlide(pptx, records) {
     { label: "APP PROMOTION RATE", value: `${appRate}%` },
   ];
 
-  // 5 dark cards in a row
-  const cardW = 1.8;
-  const gap = 0.15;
-  const startX = 0.35;
+  // 5 dark cards in a row — fill the full slide height
+  const cardW = 1.82;
+  const gap = 0.1;
+  const startX = 0.3;
+  const cardH = 5.9;
+  const cardY = 1.1;
   kpis.forEach((kpi, i) => {
     const x = startX + i * (cardW + gap);
-    const y = 1.15;
-    slide.addShape("rect", { x, y, w: cardW, h: 3.8, fill: { color: NAVY }, rounding: true });
+    slide.addShape("rect", { x, y: cardY, w: cardW, h: cardH, fill: { color: NAVY }, rounding: true });
     slide.addText(kpi.value, {
-      x, y: y + 1.0, w: cardW, h: 1.0,
-      fontSize: 26, bold: true, color: GOLD, align: "center", fontFace: "Calibri",
+      x, y: cardY + 2.0, w: cardW, h: 1.1,
+      fontSize: 28, bold: true, color: GOLD, align: "center", fontFace: "Calibri",
     });
     slide.addText(kpi.label, {
-      x, y: y + 2.1, w: cardW, h: 0.8,
+      x, y: cardY + 3.2, w: cardW, h: 0.8,
       fontSize: 10, color: "8DA4BF", align: "center", fontFace: "Calibri", bold: true,
     });
   });
@@ -213,7 +213,7 @@ function addBarChartSlide(pptx, title, description, seriesName, chartData, color
   }];
 
   slide.addChart(pptx.ChartType.bar, chartDataFormatted, {
-    x: 0.4, y: 1.38, w: 9.2, h: 3.7,
+    x: 0.4, y: 1.38, w: 9.2, h: 5.7,
     barDir: "bar",
     chartColors: [color || NAVY],
     showLegend: false,
@@ -244,7 +244,7 @@ function addGroupedBarChartSlide(pptx, title, description, groups, seriesData) {
   const chartData = seriesData.map(s => ({ name: s.name, labels: groups, values: s.values }));
 
   slide.addChart(pptx.ChartType.bar, chartData, {
-    x: 0.4, y: 1.38, w: 9.2, h: 3.7,
+    x: 0.4, y: 1.38, w: 9.2, h: 5.7,
     barDir: "col",
     barGrouping: "stacked",
     chartColors: COLORS_LIST.slice(0, seriesData.length),
