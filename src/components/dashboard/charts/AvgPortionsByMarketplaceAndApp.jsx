@@ -6,7 +6,8 @@ export default function AvgPortionsByMarketplaceAndApp({ records }) {
   const byMktApp = {};
   records.forEach(r => {
     if (!r.marketplace) return;
-    const app = r.mobile_app && r.mobile_app.trim() ? r.mobile_app.trim() : "No App";
+    const raw = r.mobile_app && r.mobile_app.trim() ? r.mobile_app.trim() : "No App";
+    const app = raw === "No App" ? raw : raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
     const key = r.marketplace;
     if (!byMktApp[key]) byMktApp[key] = {};
     if (!byMktApp[key][app]) byMktApp[key][app] = { total: 0, days: new Set() };
@@ -14,7 +15,10 @@ export default function AvgPortionsByMarketplaceAndApp({ records }) {
     byMktApp[key][app].days.add(r.date_run);
   });
 
-  const apps = [...new Set(records.map(r => (r.mobile_app && r.mobile_app.trim()) ? r.mobile_app.trim() : "No App"))];
+  const apps = [...new Set(records.map(r => {
+    const raw = r.mobile_app && r.mobile_app.trim() ? r.mobile_app.trim() : "No App";
+    return raw === "No App" ? raw : raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  }))];
 
   const data = Object.entries(byMktApp).map(([mkt, appData]) => {
     const row = { mkt: mkt.length > 16 ? mkt.slice(0, 14) + "…" : mkt };
