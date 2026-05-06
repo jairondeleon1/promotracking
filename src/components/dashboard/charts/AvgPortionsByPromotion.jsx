@@ -1,51 +1,43 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-const REGION_COLORS = {
-  "DVR": "#2563eb",
-  "NE": "#16a34a",
-  "J&J/Kenvue": "#d97706",
-  "SE": "#dc2626",
-  "MW": "#7c3aed",
-  "SW": "#0891b2",
-  "Unknown": "#94a3b8",
-};
-
-function getColor(region) {
-  return REGION_COLORS[region] || "#94a3b8";
-}
+const PALETTE = [
+  "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed",
+  "#0891b2", "#db2777", "#65a30d", "#9333ea", "#0d9488",
+];
 
 export default function AvgPortionsByPromotion({ records }) {
-  // Group by promotion + region, count unique days
+  // Group by promotion + region, count unique days per (promo+region) combo
   const byPromoRegion = {};
   records.forEach(r => {
-    const key = `${r.promotion}||${r.region || "Unknown"}`;
-    if (!byPromoRegion[key]) byPromoRegion[key] = { promo: r.promotion, region: r.region || "Unknown", total: 0, days: new Set() };
+    const promo = r.promotion || "Unknown";
+    const region = r.region || "Unknown";
+    const key = `${promo}||${region}`;
+    if (!byPromoRegion[key]) {
+      byPromoRegion[key] = { promo, region, total: 0, days: new Set() };
+    }
     byPromoRegion[key].total += r.portions_sold || 0;
-    byPromoRegion[key].days.add(r.date_run);
+    if (r.date_run) byPromoRegion[key].days.add(r.date_run);
   });
 
-  const regions = [...new Set(Object.values(byPromoRegion).map(v => v.region))];
+  const regions = [...new Set(Object.values(byPromoRegion).map(v => v.region))].sort();
   const promos = [...new Set(Object.values(byPromoRegion).map(v => v.promo))];
 
   const data = promos.map(promo => {
     const row = { name: promo };
     regions.forEach(region => {
-      const key = `${promo}||${region}`;
-      const entry = byPromoRegion[key];
-      if (entry && entry.days.size > 0) {
-        row[region] = parseFloat((entry.total / entry.days.size).toFixed(1));
-      } else {
-        row[region] = 0;
-      }
+      const entry = byPromoRegion[`${promo}||${region}`];
+      row[region] = entry && entry.days.size > 0
+        ? parseFloat((entry.total / entry.days.size).toFixed(1))
+        : 0;
     });
     return row;
   }).sort((a, b) => {
-    const totalA = regions.reduce((s, r) => s + (a[r] || 0), 0);
-    const totalB = regions.reduce((s, r) => s + (b[r] || 0), 0);
-    return totalB - totalA;
-  }).slice(0, 10);
+    const sumA = regions.reduce((s, r) => s + (a[r] || 0), 0);
+    const sumB = regions.reduce((s, r) => s + (b[r] || 0), 0);
+    return sumB - sumA;
+  }).slice(0, 12);
 
   return (
     <Card className="border-slate-200">
@@ -53,15 +45,27 @@ export default function AvgPortionsByPromotion({ records }) {
         <CardTitle className="text-sm font-semibold text-slate-700">Avg Portions/Day by Promotion &amp; Division</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 60 }}>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 70 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} angle={-35} textAnchor="end" interval={0} />
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 10, fill: "#64748b" }}
+              angle={-40}
+              textAnchor="end"
+              interval={0}
+            />
             <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
-            {regions.map(region => (
-              <Bar key={region} dataKey={region} fill={getColor(region)} radius={[3, 3, 0, 0]} />
+            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+            {regions.map((region, i) => (
+              <Bar
+                key={region}
+                dataKey={region}
+                stackId="a"
+                fill={PALETTE[i % PALETTE.length]}
+                radius={i === regions.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
