@@ -36,6 +36,7 @@ export default function TotalPortionsByPromotion({ records }) {
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
+      <p className="text-xs text-slate-400 px-6 pb-4">Shows which promotions drove the highest total volume of portions sold. Use this to identify your best-performing promotions overall.</p>
     </Card>
   );
 }

@@ -70,6 +70,7 @@ export default function AvgPortionsByPromotion({ records }) {
             ))}
           </BarChart>
         </ResponsiveContainer>
+      <p className="text-xs text-slate-400 px-6 pb-4">Compares the average daily portions sold per promotion, broken down by division. Highlights which promotions consistently perform well day-over-day across different regions.</p>
       </CardContent>
     </Card>
   );

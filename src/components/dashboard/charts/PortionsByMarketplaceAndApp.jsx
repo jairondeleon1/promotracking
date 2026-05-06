@@ -51,6 +51,7 @@ export default function PortionsByMarketplaceAndApp({ records }) {
             ))}
           </BarChart>
         </ResponsiveContainer>
+      <p className="text-xs text-slate-400 px-6 pb-4">Displays total portions sold at each marketplace, split by mobile app. Shows the impact of the mobile app on driving promotion sales at each location.</p>
       </CardContent>
     </Card>
   );

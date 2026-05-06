@@ -43,6 +43,7 @@ export default function PortionsByDayAndPromotion({ records }) {
             ))}
           </BarChart>
         </ResponsiveContainer>
+      <p className="text-xs text-slate-400 px-6 pb-4">Shows how each promotion performs across different days of the week. Helps identify if certain promotions work better on specific days, so you can optimize timing.</p>
       </CardContent>
     </Card>
   );

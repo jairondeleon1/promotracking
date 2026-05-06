@@ -36,6 +36,7 @@ export default function PortionsByDayOfWeek({ records }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      <p className="text-xs text-slate-400 px-6 pb-4">Reveals which days of the week generate the most portions sold. Use this to schedule future promotions on your highest-traffic days.</p>
       </CardContent>
     </Card>
   );

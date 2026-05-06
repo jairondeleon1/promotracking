@@ -54,6 +54,7 @@ export default function AvgPortionsByMarketplaceAndApp({ records }) {
             ))}
           </BarChart>
         </ResponsiveContainer>
+      <p className="text-xs text-slate-400 px-6 pb-4">Shows the average daily portions sold per marketplace, broken down by mobile app. Identifies which locations have the strongest day-to-day performance and whether app promotion makes a difference.</p>
       </CardContent>
     </Card>
   );
