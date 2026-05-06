@@ -8,6 +8,7 @@ import PortionsByDayAndPromotion from "./charts/PortionsByDayAndPromotion";
 import PortionsByMarketplaceAndApp from "./charts/PortionsByMarketplaceAndApp";
 import AvgPortionsByMarketplaceAndApp from "./charts/AvgPortionsByMarketplaceAndApp";
 import TopMarketplacesTable from "./charts/TopMarketplacesTable";
+import TotalSalesByPromotion from "./charts/TotalSalesByPromotion";
 
 export default function StatsOverview({ records, allRecords }) {
   const totalPortions = records.reduce((s, r) => s + (r.portions_sold || 0), 0);
@@ -44,8 +45,9 @@ export default function StatsOverview({ records, allRecords }) {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <TotalPortionsByPromotion records={records} allRecords={allRecords} />
+        <TotalSalesByPromotion records={records} allRecords={allRecords} />
         <AvgPortionsByPromotion records={records} allRecords={allRecords} />
       </div>
 
