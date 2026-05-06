@@ -38,6 +38,7 @@ export default function ForecastChart({ records }) {
     records.forEach(r => {
       if (!r.date_run || !r.portions_sold) return;
       const weekStart = startOfWeek(r.date_run);
+      if (isNaN(weekStart.getTime())) return;
       const key = weekStart.toISOString();
       if (!weekMap[key]) weekMap[key] = { date: weekStart, total: 0, count: 0, promos: new Set() };
       weekMap[key].total += r.portions_sold;
