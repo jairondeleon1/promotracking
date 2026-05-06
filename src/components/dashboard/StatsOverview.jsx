@@ -45,20 +45,20 @@ export default function StatsOverview({ records, allRecords }) {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TotalPortionsByPromotion records={records} />
-        <AvgPortionsByPromotion records={records} />
+        <TotalPortionsByPromotion records={records} allRecords={allRecords} />
+        <AvgPortionsByPromotion records={records} allRecords={allRecords} />
       </div>
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <PortionsByDayOfWeek records={records} />
-        <PortionsByDayAndPromotion records={records} />
+        <PortionsByDayOfWeek records={records} allRecords={allRecords} />
+        <PortionsByDayAndPromotion records={records} allRecords={allRecords} />
       </div>
 
       {/* Charts Row 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <PortionsByMarketplaceAndApp records={records} />
-        <AvgPortionsByMarketplaceAndApp records={records} />
+        <PortionsByMarketplaceAndApp records={records} allRecords={allRecords} />
+        <AvgPortionsByMarketplaceAndApp records={records} allRecords={allRecords} />
       </div>
 
       {/* Table */}

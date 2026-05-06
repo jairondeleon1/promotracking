@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import DrillDownModal from "../DrillDownModal";
 
-export default function PortionsByMarketplaceAndApp({ records }) {
+export default function PortionsByMarketplaceAndApp({ records, allRecords }) {
+  const [modal, setModal] = useState(null);
+  const src = allRecords || records;
   const byMktApp = {};
   records.forEach(r => {
     if (!r.marketplace) return;
@@ -47,12 +50,18 @@ export default function PortionsByMarketplaceAndApp({ records }) {
             <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {apps.map((app, i) => (
-              <Bar key={app} dataKey={app} fill={getColor(app, i)} radius={[2, 2, 0, 0]} />
+              <Bar key={app} dataKey={app} fill={getColor(app, i)} radius={[2, 2, 0, 0]} cursor="pointer"
+                onClick={(d) => {
+                  const fullMkt = Object.keys(byMktApp).find(m => (m.length > 16 ? m.slice(0, 14) + "…" : m) === d.mkt) || d.mkt;
+                  setModal({ title: `Marketplace: ${fullMkt}`, rows: src.filter(r => r.marketplace === fullMkt) });
+                }}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
-      <p className="text-xs text-slate-400 px-6 pb-4">Displays total portions sold at each marketplace, split by mobile app. Shows the impact of the mobile app on driving promotion sales at each location.</p>
+      <p className="text-xs text-slate-400 px-6 pb-4">Displays total portions sold at each marketplace, split by mobile app. Click a bar to see that marketplace's records.</p>
       </CardContent>
+      <DrillDownModal open={!!modal} onClose={() => setModal(null)} title={modal?.title} records={modal?.rows} />
     </Card>
   );
 }

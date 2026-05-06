@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import DrillDownModal from "../DrillDownModal";
 
 const COLORS = ["#2563eb","#3b82f6","#60a5fa","#93c5fd","#1d4ed8","#4f46e5","#6366f1","#818cf8","#0ea5e9","#38bdf8"];
 
-export default function TotalPortionsByPromotion({ records }) {
+export default function TotalPortionsByPromotion({ records, allRecords }) {
+  const [modal, setModal] = useState(null);
+  const src = allRecords || records;
   const byPromo = {};
   records.forEach(r => {
     if (!r.promotion) return;
@@ -30,13 +33,15 @@ export default function TotalPortionsByPromotion({ records }) {
             <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} angle={-35} textAnchor="end" interval={0} />
             <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [v, "Portions"]} />
-            <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="total" radius={[4, 4, 0, 0]} cursor="pointer"
+              onClick={(d) => setModal({ title: `Promotion: ${d.name}`, rows: src.filter(r => r.promotion === d.name) })}>
               {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
-      <p className="text-xs text-slate-400 px-6 pb-4">Shows which promotions drove the highest total volume of portions sold. Use this to identify your best-performing promotions overall.</p>
+      <p className="text-xs text-slate-400 px-6 pb-4">Shows which promotions drove the highest total volume of portions sold. Click a bar to see the underlying records.</p>
+      <DrillDownModal open={!!modal} onClose={() => setModal(null)} title={modal?.title} records={modal?.rows} />
     </Card>
   );
 }

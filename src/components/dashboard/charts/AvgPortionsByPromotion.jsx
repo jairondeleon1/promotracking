@@ -1,13 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import DrillDownModal from "../DrillDownModal";
 
 const PALETTE = [
   "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed",
   "#0891b2", "#db2777", "#65a30d", "#9333ea", "#0d9488",
 ];
 
-export default function AvgPortionsByPromotion({ records }) {
+export default function AvgPortionsByPromotion({ records, allRecords }) {
+  const [modal, setModal] = useState(null);
+  const src = allRecords || records;
   // Group by promotion + region, count unique days per (promo+region) combo
   const byPromoRegion = {};
   records.forEach(r => {
@@ -66,12 +69,15 @@ export default function AvgPortionsByPromotion({ records }) {
                 stackId="a"
                 fill={PALETTE[i % PALETTE.length]}
                 radius={i === regions.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                cursor="pointer"
+                onClick={(d) => setModal({ title: `Promotion: ${d.name}`, rows: src.filter(r => r.promotion === d.name) })}
               />
             ))}
           </BarChart>
         </ResponsiveContainer>
-      <p className="text-xs text-slate-400 px-6 pb-4">Compares the average daily portions sold per promotion, broken down by division. Highlights which promotions consistently perform well day-over-day across different regions.</p>
+      <p className="text-xs text-slate-400 px-6 pb-4">Compares the average daily portions sold per promotion, broken down by division. Click a bar to see the underlying records.</p>
       </CardContent>
+      <DrillDownModal open={!!modal} onClose={() => setModal(null)} title={modal?.title} records={modal?.rows} />
     </Card>
   );
 }

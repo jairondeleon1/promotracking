@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import DrillDownModal from "../DrillDownModal";
 
 const DAY_ORDER = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
-export default function PortionsByDayOfWeek({ records }) {
+export default function PortionsByDayOfWeek({ records, allRecords }) {
+  const [modal, setModal] = useState(null);
+  const src = allRecords || records;
   const byDay = {};
   DAY_ORDER.forEach(d => { byDay[d] = 0; });
 
@@ -29,15 +32,24 @@ export default function PortionsByDayOfWeek({ records }) {
             <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#64748b" }} />
             <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [v, "Portions"]} />
-            <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="total" radius={[4, 4, 0, 0]} cursor="pointer"
+              onClick={(d) => {
+                const fullDay = DAY_ORDER.find(fd => fd.startsWith(d.day));
+                setModal({ title: `Day: ${fullDay || d.day}`, rows: src.filter(r => {
+                  const day = (r.day_of_week || "").trim().split(/\s*&\s*/)[0].trim();
+                  const norm = DAY_ORDER.find(fd => fd.toLowerCase() === day.toLowerCase());
+                  return norm === fullDay;
+                }) });
+              }}>
               {data.map((_, i) => (
                 <Cell key={i} fill={i === data.reduce((mi, d, di) => d.total > data[mi].total ? di : mi, 0) ? "#2563eb" : "#93c5fd"} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      <p className="text-xs text-slate-400 px-6 pb-4">Reveals which days of the week generate the most portions sold. Use this to schedule future promotions on your highest-traffic days.</p>
+      <p className="text-xs text-slate-400 px-6 pb-4">Reveals which days of the week generate the most portions sold. Click a bar to see that day's records.</p>
       </CardContent>
+      <DrillDownModal open={!!modal} onClose={() => setModal(null)} title={modal?.title} records={modal?.rows} />
     </Card>
   );
 }

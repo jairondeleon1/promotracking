@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import DrillDownModal from "../DrillDownModal";
 
-export default function AvgPortionsByMarketplaceAndApp({ records }) {
+export default function AvgPortionsByMarketplaceAndApp({ records, allRecords }) {
+  const [modal, setModal] = useState(null);
+  const src = allRecords || records;
   const byMktApp = {};
   records.forEach(r => {
     if (!r.marketplace) return;
@@ -20,8 +23,11 @@ export default function AvgPortionsByMarketplaceAndApp({ records }) {
     return raw === "No App" ? raw : raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
   }))];
 
+  const mktKeyMap = {};
   const data = Object.entries(byMktApp).map(([mkt, appData]) => {
-    const row = { mkt: mkt.length > 16 ? mkt.slice(0, 14) + "…" : mkt };
+    const label = mkt.length > 16 ? mkt.slice(0, 14) + "…" : mkt;
+    mktKeyMap[label] = mkt;
+    const row = { mkt: label };
     apps.forEach(a => {
       const d = appData[a];
       row[a] = d && d.days.size > 0 ? parseFloat((d.total / d.days.size).toFixed(1)) : 0;
@@ -50,12 +56,18 @@ export default function AvgPortionsByMarketplaceAndApp({ records }) {
             <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {apps.map((app, i) => (
-              <Bar key={app} dataKey={app} fill={getColor(app, i)} radius={[2, 2, 0, 0]} />
+              <Bar key={app} dataKey={app} fill={getColor(app, i)} radius={[2, 2, 0, 0]} cursor="pointer"
+                onClick={(d) => {
+                  const fullMkt = mktKeyMap[d.mkt] || d.mkt;
+                  setModal({ title: `Marketplace: ${fullMkt}`, rows: src.filter(r => r.marketplace === fullMkt) });
+                }}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
-      <p className="text-xs text-slate-400 px-6 pb-4">Shows the average daily portions sold per marketplace, broken down by mobile app. Identifies which locations have the strongest day-to-day performance and whether app promotion makes a difference.</p>
+      <p className="text-xs text-slate-400 px-6 pb-4">Shows the average daily portions sold per marketplace, broken down by mobile app. Click a bar to see that marketplace's records.</p>
       </CardContent>
+      <DrillDownModal open={!!modal} onClose={() => setModal(null)} title={modal?.title} records={modal?.rows} />
     </Card>
   );
 }

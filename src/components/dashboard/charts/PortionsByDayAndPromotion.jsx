@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import DrillDownModal from "../DrillDownModal";
 
 const DAY_ORDER = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const COLORS = ["#2563eb","#16a34a","#d97706","#dc2626","#7c3aed","#0891b2","#db2777","#0d9488","#b45309","#1e40af"];
 
-export default function PortionsByDayAndPromotion({ records }) {
+export default function PortionsByDayAndPromotion({ records, allRecords }) {
+  const [modal, setModal] = useState(null);
+  const src = allRecords || records;
   const promos = [...new Set(records.map(r => r.promotion).filter(Boolean))].slice(0, 8);
   const byDayPromo = {};
   DAY_ORDER.forEach(d => { byDayPromo[d] = {}; promos.forEach(p => { byDayPromo[d][p] = 0; }); });
@@ -39,12 +42,23 @@ export default function PortionsByDayAndPromotion({ records }) {
             <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
             <Legend wrapperStyle={{ fontSize: 10 }} />
             {promos.map((p, i) => (
-              <Bar key={p} dataKey={p} fill={COLORS[i % COLORS.length]} radius={[2, 2, 0, 0]} stackId="a" />
+              <Bar key={p} dataKey={p} fill={COLORS[i % COLORS.length]} radius={[2, 2, 0, 0]} stackId="a" cursor="pointer"
+                onClick={(d) => {
+                  const fullDay = DAY_ORDER.find(fd => fd.startsWith(d.day));
+                  setModal({ title: `${p} — ${fullDay || d.day}`, rows: src.filter(r => {
+                    if (r.promotion !== p) return false;
+                    const day = (r.day_of_week || "").trim().split(/\s*&\s*/)[0].trim();
+                    const norm = DAY_ORDER.find(fd => fd.toLowerCase() === day.toLowerCase());
+                    return norm === fullDay;
+                  }) });
+                }}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
-      <p className="text-xs text-slate-400 px-6 pb-4">Shows how each promotion performs across different days of the week. Helps identify if certain promotions work better on specific days, so you can optimize timing.</p>
+      <p className="text-xs text-slate-400 px-6 pb-4">Shows how each promotion performs across different days of the week. Click a bar segment to see those records.</p>
       </CardContent>
+      <DrillDownModal open={!!modal} onClose={() => setModal(null)} title={modal?.title} records={modal?.rows} />
     </Card>
   );
 }
