@@ -173,10 +173,11 @@ function addKpiSlide(pptx, records) {
     { label: "APP PROMOTION RATE", value: `${appRate}%` },
   ];
 
-  // 5 dark cards in a row — fill the full slide height
-  const cardW = 1.82;
-  const gap = 0.1;
-  const startX = 0.3;
+  // 5 dark cards in a row — fill full slide width and height
+  const totalW = 9.6;
+  const gap = 0.08;
+  const cardW = (totalW - gap * 4) / 5;
+  const startX = 0.2;
   const cardH = 5.9;
   const cardY = 1.1;
   kpis.forEach((kpi, i) => {
@@ -202,7 +203,7 @@ function addBarChartSlide(pptx, title, description, seriesName, chartData, color
   if (description) {
     slide.addText(description, {
       x: 0.4, y: 0.98, w: 9.2, h: 0.38,
-      fontSize: 10, color: MID_GRAY, italic: true, fontFace: "Calibri",
+      fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
     });
   }
 
@@ -236,7 +237,7 @@ function addGroupedBarChartSlide(pptx, title, description, groups, seriesData) {
   if (description) {
     slide.addText(description, {
       x: 0.4, y: 0.98, w: 9.2, h: 0.38,
-      fontSize: 10, color: MID_GRAY, italic: true, fontFace: "Calibri",
+      fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
     });
   }
 
@@ -268,7 +269,7 @@ function addTableSlide(pptx, records) {
 
   slide.addText("Ranks the top promotion + region combinations by total portions sold, including average daily performance.", {
     x: 0.4, y: 0.98, w: 9.2, h: 0.38,
-    fontSize: 10, color: MID_GRAY, italic: true, fontFace: "Calibri",
+    fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
   });
 
   const map = {};
@@ -315,7 +316,7 @@ function addMarketplaceTableSlide(pptx, records) {
 
   slide.addText("Ranks the top marketplace + mobile app combinations by total portions sold and daily average.", {
     x: 0.4, y: 0.98, w: 9.2, h: 0.38,
-    fontSize: 10, color: MID_GRAY, italic: true, fontFace: "Calibri",
+    fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
   });
 
   const map = {};
