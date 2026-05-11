@@ -21,7 +21,7 @@ export default function StatsOverview({ records, allRecords }) {
 
   const stats = [
     { label: "Total Portions Sold", value: totalPortions.toLocaleString(), icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Unique Promotions", value: uniquePromos, icon: ShoppingBag, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Blueprint Promotions", value: uniquePromos, icon: ShoppingBag, color: "text-indigo-600", bg: "bg-indigo-50" },
     { label: "Marketplaces Active", value: uniqueMarketplaces, icon: BarChart2, color: "text-slate-600", bg: "bg-slate-100" },
     { label: "App Promotion Rate", value: `${appPromoRate}%`, icon: Smartphone, color: "text-cyan-600", bg: "bg-cyan-50" },
   ];
