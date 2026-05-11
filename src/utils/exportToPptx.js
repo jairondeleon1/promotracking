@@ -367,6 +367,69 @@ function addMarketplaceTableSlide(pptx, records) {
   });
 }
 
+function addAppPromotionSlide(pptx, records) {
+  const slide = pptx.addSlide();
+  slide.background = { color: WHITE };
+  addSlideHeader(slide, "Marketplaces Promoting on Mobile App");
+  addFooterBar(slide);
+
+  slide.addText("Shows which marketplaces ran promotions on the mobile app, with total portions and days active.", {
+    x: 0.4, y: 0.98, w: 12.5, h: 0.38,
+    fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
+  });
+
+  const appRecords = records.filter(r => (r.promoted_on_app || "").toLowerCase() === "yes");
+
+  const map = {};
+  appRecords.forEach(r => {
+    if (!r.marketplace) return;
+    const app = r.mobile_app && r.mobile_app.trim() ? r.mobile_app.trim() : "Unknown";
+    const key = `${r.marketplace}||${app}`;
+    if (!map[key]) map[key] = { marketplace: r.marketplace, app, total: 0, days: new Set() };
+    map[key].total += r.portions_sold || 0;
+    if (r.date_run) map[key].days.add(r.date_run);
+  });
+
+  const allRows = Object.values(map)
+    .map(v => ({ ...v, avg: v.days.size > 0 ? (v.total / v.days.size).toFixed(1) : "0" }))
+    .sort((a, b) => b.total - a.total);
+
+  if (allRows.length === 0) {
+    slide.addText("No app promotion data available.", {
+      x: 0.4, y: 3.5, w: 12.5, h: 0.5,
+      fontSize: 14, color: MID_GRAY, align: "center", fontFace: "Calibri",
+    });
+    return;
+  }
+
+  const maxRows = Math.min(allRows.length, 20);
+  const rows = allRows.slice(0, maxRows);
+  const fontSize = rows.length > 14 ? 8 : 9;
+  const rowH = rows.length > 14 ? 0.26 : 0.3;
+
+  const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize };
+  const tableRows = [
+    [
+      { text: "MARKETPLACE", options: hOpts },
+      { text: "MOBILE APP", options: hOpts },
+      { text: "TOTAL PORTIONS", options: { ...hOpts, align: "right" } },
+      { text: "AVG PORTIONS/DAY", options: { ...hOpts, align: "right" } },
+      { text: "DAYS ACTIVE", options: { ...hOpts, align: "right" } },
+    ],
+    ...rows.map((r, i) => {
+      const bg = i % 2 === 0 ? WHITE : OFF_WHITE;
+      const cell = (text, align = "left") => ({ text: String(text), options: { fill: bg, fontSize, fontFace: "Calibri", color: DARK_TEXT, align } });
+      return [cell(r.marketplace), cell(r.app), cell(r.total.toLocaleString(), "right"), cell(r.avg, "right"), cell(r.days.size, "right")];
+    }),
+  ];
+
+  slide.addTable(tableRows, {
+    x: 0.4, y: 1.38, w: 12.5, rowH,
+    border: { color: "E2E8F0", pt: 0.5 },
+    colW: [4.5, 2.5, 2.0, 2.0, 1.5],
+  });
+}
+
 // ── Main export ──────────────────────────────────────────────────────────────
 
 export async function exportToPptx(records, month) {
@@ -418,6 +481,7 @@ export async function exportToPptx(records, month) {
 
   addTableSlide(pptx, validRecords);
   addMarketplaceTableSlide(pptx, validRecords);
+  addAppPromotionSlide(pptx, validRecords);
 
   const fileName = `Promotion_Dashboard_${month !== "all" ? month.replace(/\s/g, "_") : "All_Months"}.pptx`;
   await pptx.writeFile({ fileName });
