@@ -56,7 +56,7 @@ function aggregateByDay(records) {
 function aggregateByMarketplace(records) {
   const map = {};
   records.forEach(r => { if (!r.marketplace) return; map[r.marketplace] = (map[r.marketplace] || 0) + (r.portions_sold || 0); });
-  return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  return Object.entries(map).sort((a, b) => b[1] - a[1]);
 }
 
 function aggregateAvgByMarketplace(records) {
@@ -68,8 +68,8 @@ function aggregateAvgByMarketplace(records) {
     if (r.date_run) map[r.marketplace].days.add(r.date_run);
   });
   return Object.entries(map)
-    .map(([k, v]) => [k.length > 18 ? k.slice(0, 16) + "…" : k, v.days.size > 0 ? parseFloat((v.total / v.days.size).toFixed(1)) : 0])
-    .sort((a, b) => b[1] - a[1]).slice(0, 10);
+    .map(([k, v]) => [k.length > 22 ? k.slice(0, 20) + "…" : k, v.days.size > 0 ? parseFloat((v.total / v.days.size).toFixed(1)) : 0])
+    .sort((a, b) => b[1] - a[1]);
 }
 
 function buildDayByPromotionSeries(records) {
@@ -282,7 +282,7 @@ function addTableSlide(pptx, records) {
 
   const rows = Object.values(map)
     .map(v => ({ ...v, avg: v.days.size > 0 ? (v.total / v.days.size).toFixed(1) : "0" }))
-    .sort((a, b) => b.total - a.total).slice(0, 14);
+    .sort((a, b) => b.total - a.total).slice(0, 30);
 
   const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize: 10 };
   const tableRows = [
@@ -331,7 +331,7 @@ function addMarketplaceTableSlide(pptx, records) {
 
   const rows = Object.values(map)
     .map(v => ({ ...v, avg: v.days.size > 0 ? (v.total / v.days.size).toFixed(1) : "0" }))
-    .sort((a, b) => b.total - a.total).slice(0, 14);
+    .sort((a, b) => b.total - a.total).slice(0, 30);
 
   const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize: 10 };
   const tableRows = [
