@@ -331,9 +331,15 @@ function addMarketplaceTableSlide(pptx, records) {
 
   const rows = Object.values(map)
     .map(v => ({ ...v, avg: v.days.size > 0 ? (v.total / v.days.size).toFixed(1) : "0" }))
-    .sort((a, b) => b.total - a.total).slice(0, 30);
+    .sort((a, b) => b.total - a.total);
 
-  const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize: 10 };
+  // Fit rows into slide: estimate ~0.28" per row, 5.7" available after header
+  const maxRows = Math.min(rows.length, 20);
+  const displayRows = rows.slice(0, maxRows);
+  const fontSize = displayRows.length > 14 ? 8 : 9;
+  const rowH = displayRows.length > 14 ? 0.26 : 0.3;
+
+  const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize: fontSize };
   const tableRows = [
     [
       { text: "MARKETPLACE", options: hOpts },
@@ -342,15 +348,15 @@ function addMarketplaceTableSlide(pptx, records) {
       { text: "AVG PORTIONS/DAY", options: { ...hOpts, align: "right" } },
       { text: "DAYS ACTIVE", options: { ...hOpts, align: "right" } },
     ],
-    ...rows.map((r, i) => {
+    ...displayRows.map((r, i) => {
       const bg = i % 2 === 0 ? WHITE : OFF_WHITE;
-      const cell = (text, align = "left") => ({ text: String(text), options: { fill: bg, fontSize: 10, fontFace: "Calibri", color: DARK_TEXT, align } });
+      const cell = (text, align = "left") => ({ text: String(text), options: { fill: bg, fontSize: fontSize, fontFace: "Calibri", color: DARK_TEXT, align } });
       return [cell(r.marketplace), cell(r.app), cell(r.total.toLocaleString(), "right"), cell(r.avg, "right"), cell(r.days.size, "right")];
     }),
   ];
 
   slide.addTable(tableRows, {
-    x: 0.4, y: 1.38, w: 12.5,
+    x: 0.4, y: 1.38, w: 12.5, rowH,
     border: { color: "E2E8F0", pt: 0.5 },
     colW: [4.5, 2.5, 2.0, 2.0, 1.5],
   });
