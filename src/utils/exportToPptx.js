@@ -280,11 +280,16 @@ function addTableSlide(pptx, records) {
     map[key].days.add(r.date_run);
   });
 
-  const rows = Object.values(map)
+  const allRows = Object.values(map)
     .map(v => ({ ...v, avg: v.days.size > 0 ? (v.total / v.days.size).toFixed(1) : "0" }))
-    .sort((a, b) => b.total - a.total).slice(0, 30);
+    .sort((a, b) => b.total - a.total);
 
-  const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize: 10 };
+  const maxRows = Math.min(allRows.length, 20);
+  const rows = allRows.slice(0, maxRows);
+  const fontSize = rows.length > 14 ? 8 : 9;
+  const rowH = rows.length > 14 ? 0.26 : 0.3;
+
+  const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize };
   const tableRows = [
     [
       { text: "PROMOTION", options: hOpts },
@@ -295,13 +300,13 @@ function addTableSlide(pptx, records) {
     ],
     ...rows.map((r, i) => {
       const bg = i % 2 === 0 ? WHITE : OFF_WHITE;
-      const cell = (text, align = "left") => ({ text: String(text), options: { fill: bg, fontSize: 10, fontFace: "Calibri", color: DARK_TEXT, align } });
+      const cell = (text, align = "left") => ({ text: String(text), options: { fill: bg, fontSize, fontFace: "Calibri", color: DARK_TEXT, align } });
       return [cell(r.promotion), cell(r.region), cell(r.total.toLocaleString(), "right"), cell(r.avg, "right"), cell(r.days.size, "right")];
     }),
   ];
 
   slide.addTable(tableRows, {
-    x: 0.4, y: 1.38, w: 12.5,
+    x: 0.4, y: 1.38, w: 12.5, rowH,
     border: { color: "E2E8F0", pt: 0.5 },
     colW: [4.2, 3.0, 2.0, 2.0, 1.3],
   });
