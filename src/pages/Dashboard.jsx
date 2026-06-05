@@ -12,14 +12,15 @@ import MonthFilter from "../components/dashboard/MonthFilter";
 export default function Dashboard() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState("all");
-  const [months, setMonths] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState("all");
+  const [batches, setBatches] = useState([]);
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
     setExporting(true);
-    const filtered = selectedMonth === "all" ? records : records.filter(r => r.upload_month === selectedMonth);
-    await exportToPptx(filtered, selectedMonth);
+    const filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
+    const label = selectedBatch === "all" ? "all" : (batches.find(b => b.id === selectedBatch)?.label || selectedBatch);
+    await exportToPptx(filtered, label);
     setExporting(false);
   };
 
@@ -27,14 +28,22 @@ export default function Dashboard() {
     setLoading(true);
     const data = await base44.entities.PromotionRecord.list("-created_date", 2000);
     setRecords(data);
-    const uniqueMonths = [...new Set(data.map(r => r.upload_month).filter(Boolean))].sort();
-    setMonths(uniqueMonths);
+    // Build a unique list of batches preserving their uploaded order (newest first)
+    const seen = new Set();
+    const batchList = [];
+    data.forEach(r => {
+      if (r.upload_batch_id && !seen.has(r.upload_batch_id)) {
+        seen.add(r.upload_batch_id);
+        batchList.push({ id: r.upload_batch_id, label: r.upload_month || r.upload_batch_id });
+      }
+    });
+    setBatches(batchList);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const filtered = selectedMonth === "all" ? records : records.filter(r => r.upload_month === selectedMonth);
+  const filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
   const validRecords = filtered.filter(r => r.portions_sold > 0);
 
   return (
@@ -84,7 +93,7 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-screen-xl mx-auto px-6 py-6">
-        <MonthFilter months={months} selected={selectedMonth} onChange={setSelectedMonth} />
+        <MonthFilter batches={batches} selected={selectedBatch} onChange={setSelectedBatch} />
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
