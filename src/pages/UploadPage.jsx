@@ -85,9 +85,9 @@ export default function UploadPage() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       if (isExcel(f)) {
-        const wb = XLSX.read(ev.target.result, { type: "array", cellDates: true });
+        const wb = XLSX.read(ev.target.result, { type: "array", cellDates: false });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
         resolve(rows);
       } else {
         resolve(parseCSV(ev.target.result));
