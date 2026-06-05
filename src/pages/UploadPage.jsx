@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import * as XLSX from "xlsx";
 
 function parseCurrency(val) {
   if (!val || val === "") return null;
@@ -78,17 +79,31 @@ export default function UploadPage() {
   const [preview, setPreview] = useState([]);
   const navigate = useNavigate();
 
-  const handleFileChange = (e) => {
+  const isExcel = (f) => f && (f.name.endsWith(".xlsx") || f.name.endsWith(".xls"));
+
+  const parseFile = (f) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (isExcel(f)) {
+        const wb = XLSX.read(ev.target.result, { type: "array", cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        resolve(rows);
+      } else {
+        resolve(parseCSV(ev.target.result));
+      }
+    };
+    if (isExcel(f)) reader.readAsArrayBuffer(f);
+    else reader.readAsText(f);
+  });
+
+  const handleFileChange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
     setFile(f);
     setStatus(null);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const rows = parseCSV(ev.target.result);
-      setPreview(rows.slice(0, 5));
-    };
-    reader.readAsText(f);
+    const rows = await parseFile(f);
+    setPreview(rows.slice(0, 5));
   };
 
   const handleUpload = async () => {
@@ -98,25 +113,20 @@ export default function UploadPage() {
       return;
     }
     setStatus("loading");
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const rows = parseCSV(ev.target.result);
-      const batchId = crypto.randomUUID();
-      const mapped = rows.map(r => mapRow(r, monthLabel.trim(), batchId)).filter(Boolean);
-      if (mapped.length === 0) {
-        setStatus("error");
-        setMessage("No valid rows found. Check your CSV format.");
-        return;
-      }
-      // Bulk create in chunks of 50
-      const chunkSize = 50;
-      for (let i = 0; i < mapped.length; i += chunkSize) {
-        await base44.entities.PromotionRecord.bulkCreate(mapped.slice(i, i + chunkSize));
-      }
-      setStatus("success");
-      setMessage(`Successfully imported ${mapped.length} records for "${monthLabel}".`);
-    };
-    reader.readAsText(file);
+    const rows = await parseFile(file);
+    const batchId = crypto.randomUUID();
+    const mapped = rows.map(r => mapRow(r, monthLabel.trim(), batchId)).filter(Boolean);
+    if (mapped.length === 0) {
+      setStatus("error");
+      setMessage("No valid rows found. Check your file format.");
+      return;
+    }
+    const chunkSize = 50;
+    for (let i = 0; i < mapped.length; i += chunkSize) {
+      await base44.entities.PromotionRecord.bulkCreate(mapped.slice(i, i + chunkSize));
+    }
+    setStatus("success");
+    setMessage(`Successfully imported ${mapped.length} records for "${monthLabel}".`);
   };
 
   return (
@@ -158,7 +168,7 @@ export default function UploadPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-slate-800">
               <FileSpreadsheet className="w-5 h-5 text-blue-600" />
-              Upload Monthly Promotion CSV
+              Upload Monthly Promotion Data
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -174,14 +184,14 @@ export default function UploadPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>CSV File <span className="text-red-500">*</span></Label>
+              <Label>CSV or Excel File <span className="text-red-500">*</span></Label>
               <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
                 <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" id="csv-input" />
+                <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileChange} className="hidden" id="csv-input" />
                 <label htmlFor="csv-input" className="cursor-pointer text-sm text-blue-600 hover:underline font-medium">
-                  {file ? file.name : "Click to select a CSV file"}
+                  {file ? file.name : "Click to select a CSV or Excel file"}
                 </label>
-                {file && <p className="text-xs text-slate-400 mt-1">File selected</p>}
+                <p className="text-xs text-slate-400 mt-1">{file ? "File selected" : "Supported: .csv, .xlsx, .xls"}</p>
               </div>
             </div>
 
