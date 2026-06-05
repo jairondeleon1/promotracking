@@ -10,8 +10,8 @@ import MonthFilter from "../components/dashboard/MonthFilter";
 export default function DataTablePage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState("all");
-  const [months, setMonths] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState("all");
+  const [filterBatches, setFilterBatches] = useState([]);
   const [search, setSearch] = useState("");
   const [deletingBatch, setDeletingBatch] = useState(null);
 
@@ -19,15 +19,22 @@ export default function DataTablePage() {
     setLoading(true);
     const data = await base44.entities.PromotionRecord.list("-created_date", 2000);
     setRecords(data);
-    const uniqueMonths = [...new Set(data.map(r => r.upload_month).filter(Boolean))].sort();
-    setMonths(uniqueMonths);
+    const seen = new Set();
+    const batchList = [];
+    data.forEach(r => {
+      if (r.upload_batch_id && !seen.has(r.upload_batch_id)) {
+        seen.add(r.upload_batch_id);
+        batchList.push({ id: r.upload_batch_id, label: r.upload_month || r.upload_batch_id });
+      }
+    });
+    setFilterBatches(batchList);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
   const filtered = records
-    .filter(r => selectedMonth === "all" || r.upload_month === selectedMonth)
+    .filter(r => selectedBatch === "all" || r.upload_batch_id === selectedBatch)
     .filter(r => {
       if (!search) return true;
       const q = search.toLowerCase();
@@ -101,7 +108,7 @@ export default function DataTablePage() {
         )}
 
         <div className="flex items-center gap-3">
-          <MonthFilter months={months} selected={selectedMonth} onChange={setSelectedMonth} />
+          <MonthFilter batches={filterBatches} selected={selectedBatch} onChange={setSelectedBatch} />
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search marketplace, promotion..." className="pl-9" />
