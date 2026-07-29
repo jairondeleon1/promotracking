@@ -47,6 +47,14 @@ function parseCSV(text) {
   return rows;
 }
 
+function ciGet(row, key) {
+  const target = key.toLowerCase().trim();
+  for (const k in row) {
+    if (k.toLowerCase().trim() === target) return row[k] || "";
+  }
+  return "";
+}
+
 function mapRow(row, uploadMonth, batchId) {
   const marketplace = row["MARKETPLACE+A1:M1"] || row["MARKETPLACE"] || "";
   const region = row["REGION"] || "";
@@ -66,8 +74,8 @@ function mapRow(row, uploadMonth, batchId) {
     mobile_app: row["MOBILE APP"] || "",
     promoted_on_app: row["DID YOU PROMOTE ON THE MOBILE APP?"] || "",
     comments: row["COMMENTS"] || "",
-    business_type: row["BUSINESS TYPE"] || "",
-    recipe_run: row["RECIPE RUN"] || "",
+    business_type: ciGet(row, "BUSINESS TYPE"),
+    recipe_run: ciGet(row, "RECIPE RUN"),
     upload_month: uploadMonth,
     upload_batch_id: batchId,
   };
