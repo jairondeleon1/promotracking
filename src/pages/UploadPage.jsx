@@ -66,6 +66,8 @@ function mapRow(row, uploadMonth, batchId) {
     mobile_app: row["MOBILE APP"] || "",
     promoted_on_app: row["DID YOU PROMOTE ON THE MOBILE APP?"] || "",
     comments: row["COMMENTS"] || "",
+    business_type: row["BUSINESS TYPE"] || "",
+    recipe_run: row["RECIPE RUN"] || "",
     upload_month: uploadMonth,
     upload_batch_id: batchId,
   };

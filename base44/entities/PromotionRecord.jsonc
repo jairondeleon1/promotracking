@@ -45,6 +45,14 @@
     "comments": {
       "type": "string"
     },
+    "business_type": {
+      "type": "string",
+      "description": "Business type"
+    },
+    "recipe_run": {
+      "type": "string",
+      "description": "Recipe run name"
+    },
     "upload_month": {
       "type": "string",
       "description": "Month/Year label for this upload batch, e.g. April 2025"
