@@ -53,6 +53,18 @@ function aggregateByDay(records) {
   return DAY_ORDER.filter(d => map[d] > 0).map(d => [d.slice(0, 3), map[d]]);
 }
 
+function aggregateByBusinessType(records) {
+  const map = {};
+  records.forEach(r => { if (!r.business_type) return; map[r.business_type] = (map[r.business_type] || 0) + (r.portions_sold || 0); });
+  return Object.entries(map).sort((a, b) => b[1] - a[1]);
+}
+
+function aggregateByRecipeRun(records) {
+  const map = {};
+  records.forEach(r => { if (!r.recipe_run) return; map[r.recipe_run] = (map[r.recipe_run] || 0) + (r.portions_sold || 0); });
+  return Object.entries(map).sort((a, b) => b[1] - a[1]);
+}
+
 function aggregateByMarketplace(records) {
   const map = {};
   records.forEach(r => { if (!r.marketplace) return; map[r.marketplace] = (map[r.marketplace] || 0) + (r.portions_sold || 0); });
@@ -478,6 +490,16 @@ export async function exportToPptx(records, month) {
     "Avg Portions/Day by Marketplace",
     "Shows the average daily portions sold per marketplace.",
     "Avg Portions/Day", aggregateAvgByMarketplace(validRecords), ORANGE);
+
+  addBarChartSlide(pptx,
+    "Total Portions Sold by Business Type",
+    "Shows which business types generated the highest total portions sold.",
+    "Portions", aggregateByBusinessType(validRecords), BLUE);
+
+  addBarChartSlide(pptx,
+    "Total Portions Sold by Recipe Run",
+    "Shows which recipe runs generated the highest total portions sold.",
+    "Portions", aggregateByRecipeRun(validRecords), PURPLE);
 
   addTableSlide(pptx, validRecords);
   addMarketplaceTableSlide(pptx, validRecords);
