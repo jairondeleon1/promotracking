@@ -10,6 +10,8 @@ import AvgPortionsByMarketplaceAndApp from "./charts/AvgPortionsByMarketplaceAnd
 import TopMarketplacesTable from "./charts/TopMarketplacesTable";
 import TotalSalesByPromotion from "./charts/TotalSalesByPromotion";
 import ForecastChart from "./charts/ForecastChart";
+import PortionsByBusinessType from "./charts/PortionsByBusinessType";
+import PortionsByRecipeRun from "./charts/PortionsByRecipeRun";
 
 export default function StatsOverview({ records, allRecords }) {
   const totalPortions = records.reduce((s, r) => s + (r.portions_sold || 0), 0);
@@ -62,6 +64,12 @@ export default function StatsOverview({ records, allRecords }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <PortionsByMarketplaceAndApp records={records} allRecords={allRecords} />
         <AvgPortionsByMarketplaceAndApp records={records} allRecords={allRecords} />
+      </div>
+
+      {/* Business Type & Recipe Run */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <PortionsByBusinessType records={records} allRecords={allRecords} />
+        <PortionsByRecipeRun records={records} allRecords={allRecords} />
       </div>
 
       {/* Forecast */}
