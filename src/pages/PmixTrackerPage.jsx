@@ -151,6 +151,36 @@ function AccountCard({ account, pmixBatches, catalogItems, onDelete }) {
                   </div>
                 )}
 
+                {/* Matched items detail */}
+                {promoItems.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                      Matched Items ({promoItems.length} items)
+                    </p>
+                    <div className="max-h-64 overflow-y-auto space-y-1">
+                      {promoItems.slice(0, 50).map((r, i) => (
+                        <div key={i} className="flex items-center justify-between bg-green-50 border border-green-100 rounded px-3 py-1.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs text-slate-700 truncate max-w-[260px]">{r.item_description || r.item_number}</p>
+                              <p className="text-[10px] text-slate-400">#{r.item_number || "—"} · {r.brand || ""}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs whitespace-nowrap ml-2">
+                            <Badge variant="outline" className="text-[10px] border-green-200 text-green-700">{r.matched_promotion}</Badge>
+                            <span className="text-slate-500">{r.quantity_sold} units</span>
+                            <span className="text-green-700">${(r.total_sales || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {promoItems.length > 50 && (
+                        <p className="text-xs text-slate-400 text-center py-1">+{promoItems.length - 50} more items</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Not matched / not selling */}
                 {unmatched.length > 0 && (
                   <div>
