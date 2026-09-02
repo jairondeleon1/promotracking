@@ -17,8 +17,10 @@ function idsMatch(a, b) {
 }
 
 const STOP_WORDS = new Set([
-  "with", "each", "case", "pack", "ct", "ctn", "oz", "lb", "lbs",
-  "and", "the", "for", "box", "ea", "size", "fz", "gr", "gm",
+  "with", "each", "case", "cases", "pack", "packs", "ct", "ctn", "oz", "lb", "lbs",
+  "and", "the", "for", "box", "boxes", "ea", "size", "fz", "gr", "gm", "kg", "ml",
+  "bottle", "bottles", "can", "cans", "pet", "carton", "cartons", "bag", "bags",
+  "pouch", "pouches", "tray", "trays", "sleeve", "sleeves", "unit", "units",
 ]);
 
 function normalizeDesc(str) {
@@ -56,12 +58,25 @@ function descriptionsMatch(pmixDesc, catalogDesc) {
   const bVariant = splitVariantWords(getSignificantWords(catalogDesc));
   if (aVariant.size === 0 || bVariant.size === 0) return false;
 
-  // Require the variant (non-pack-size) word sets to be identical.
-  // Extra variant words (e.g. "zero", "sugar", "hard", "boiled") on either
-  // side mean a different product, so they must not match.
-  if (aVariant.size !== bVariant.size) return false;
-  for (const w of aVariant) if (!bVariant.has(w)) return false;
-  return true;
+  // The shorter description's variant words must ALL appear in the longer
+  // one (containment). This means the shorter is a product-name "core" of
+  // the longer, which is the strong signal that they're the same item.
+  const [shorter, longer] = aVariant.size <= bVariant.size ? [aVariant, bVariant] : [bVariant, aVariant];
+  let common = 0;
+  shorter.forEach(w => { if (longer.has(w)) common++; });
+  if (common !== shorter.size) return false;
+
+  // A single variant word is too generic (catalog "egg" vs pmix "egg salad").
+  if (shorter.size < 2) return false;
+
+  // Allow the longer description a few extra variant words (extra detail),
+  // scaling with the shorter size: 0 extra for 2-word cores, 1 for 3-5 words,
+  // 2 for 6+. This blocks product-variant false positives where the longer
+  // adds differentiators like "zero sugar" or "hard boiled" to a short core.
+  let extra = 0;
+  longer.forEach(w => { if (!shorter.has(w)) extra++; });
+  const allowedExtra = Math.floor(shorter.size / 3);
+  return extra <= allowedExtra;
 }
 
 export function matchItemToCatalog(item, catalogItems) {
