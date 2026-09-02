@@ -32,21 +32,32 @@ function getSignificantWords(desc) {
 }
 
 function descriptionsMatch(pmixDesc, catalogDesc) {
+  const aNorm = normalizeDesc(pmixDesc);
+  const bNorm = normalizeDesc(catalogDesc);
+  if (!aNorm || !bNorm) return false;
+
+  // Exact normalized match is always safe
+  if (aNorm === bNorm) return true;
+
   const aWords = getSignificantWords(pmixDesc);
   const bWords = getSignificantWords(catalogDesc);
   if (aWords.length === 0 || bWords.length === 0) return false;
 
-  // Containment: one description fully contains the other's significant words
   const aSet = new Set(aWords);
   const bSet = new Set(bWords);
   const shorter = aWords.length <= bWords.length ? aSet : bSet;
   const longer = aWords.length <= bWords.length ? bSet : aSet;
   let contained = 0;
   shorter.forEach(w => { if (longer.has(w)) contained++; });
-  if (contained / shorter.size >= 0.8) return true;
 
-  // Word overlap: at least 60% of the shorter description's significant words match
-  return contained / shorter.size >= 0.6;
+  // If the shorter description has fewer than 2 significant words, a partial
+  // overlap is too generic (e.g. catalog "egg" vs pmix "hard boiled egg").
+  // Require an exact full-string match instead, which we already checked above.
+  if (shorter.size < 2) return false;
+
+  // Require ALL significant words of the shorter description to be present
+  // in the longer one — a single mismatch means a different product.
+  return contained === shorter.size;
 }
 
 export function matchItemToCatalog(item, catalogItems) {
