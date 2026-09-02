@@ -40,7 +40,32 @@ function parseFileLocal(f) {
         const wb = XLSX.read(ev.target.result, { type: "array", cellDates: false });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const raw = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, header: 1 });
-        // Find header row
+
+        // Determine the max number of non-empty columns across all rows
+        let maxCols = 0;
+        for (const r of raw) {
+          let lastNonEmpty = 0;
+          for (let c = 0; c < r.length; c++) {
+            if (r[c] !== "" && r[c] != null) lastNonEmpty = c + 1;
+          }
+          if (lastNonEmpty > maxCols) maxCols = lastNonEmpty;
+        }
+
+        // Stacked format: 1-2 columns with all data stacked vertically as label/value pairs
+        const isStacked = maxCols <= 2;
+
+        if (isStacked) {
+          // Flatten all non-empty cell values into a single ordered list
+          const flatValues = [];
+          for (const r of raw) {
+            const cellVal = String(r[0] ?? "").trim();
+            if (cellVal !== "") flatValues.push(cellVal);
+          }
+          resolve({ isStacked: true, flatValues, headers: [], rows: [] });
+          return;
+        }
+
+        // Normal tabular format — find header row and map rows to objects
         let headerIdx = 0;
         for (let i = 0; i < Math.min(10, raw.length); i++) {
           const rowStr = raw[i].join(" ").toLowerCase();
@@ -57,7 +82,7 @@ function parseFileLocal(f) {
           headers.forEach((h, idx) => { obj[h] = String(raw[i][idx] ?? "").trim(); });
           rows.push(obj);
         }
-        resolve({ headers, rows });
+        resolve({ isStacked: false, headers, rows, flatValues: [], rawRows: raw });
       } catch (e) { reject(e); }
     };
     reader.onerror = reject;
@@ -96,11 +121,15 @@ export default function PmixUploadPanel({ accounts, catalogItems, onUploaded }) 
     setExtracted(null);
     setPreview([]);
     try {
-      const { headers, rows } = await parseFileLocal(f);
-      setPreview(rows.slice(0, 3));
-      if (rows.length === 0) {
-        setStatus("error");
-        setMessage("The file appears to be empty or has no data rows.");
+      const parsed = await parseFileLocal(f);
+      if (parsed.isStacked) {
+        setPreview(parsed.flatValues.slice(0, 5).map(v => ({ "Column A": v })));
+      } else {
+        setPreview(parsed.rows.slice(0, 3));
+        if (parsed.rows.length === 0) {
+          setStatus("error");
+          setMessage("The file appears to be empty or has no data rows.");
+        }
       }
     } catch (err) {
       setStatus("error");
@@ -113,16 +142,31 @@ export default function PmixUploadPanel({ accounts, catalogItems, onUploaded }) 
     setStatus("extracting");
     setMessage("Reading the PMix file with AI — this can take 20-40 seconds...");
     try {
-      const { headers, rows } = await parseFileLocal(file);
-      if (rows.length === 0) {
-        setStatus("error");
-        setMessage("No data rows found in the file.");
-        return;
-      }
-      // Send up to 400 rows to the LLM as a compact JSON string
-      const sample = rows.slice(0, 400);
-      const prompt = `You are analyzing a product mix (PMix) export from a foodservice distributor. The data below is from an Excel/CSV file.
-The column headers are: ${JSON.stringify(headers)}
+      const parsed = await parseFileLocal(file);
+
+      let prompt;
+      if (parsed.isStacked) {
+        // Stacked format: all values are in a single column, alternating labels and values
+        const sample = parsed.flatValues.slice(0, 600);
+        prompt = `You are analyzing a product mix (PMix) export from a foodservice distributor. The file is in a STACKED / vertical format: all data is in a single column where field labels and field values alternate down the rows. Each order/item record is represented by a sequence of label-value pairs before the next record begins.
+
+Here are the raw cell values from column A, in order (first ${sample.length} of ${parsed.flatValues.length}):
+${JSON.stringify(sample)}
+
+Reconstruct the individual item records from this stacked label-value stream. Common field labels you will encounter include: Order Number, Order Date, Item Number, Item Description (or Description), Brand, Category (or Class), Quantity (or Qty Sold), Unit Price (or Price), Total Sales (or Extended Amount), UPC. 
+- Group consecutive label-value pairs into records — a new record typically starts when you see "Order Number" or "Item Number" again after a complete set of fields.
+- Convert quantity and price values to numbers (strip $ and commas).
+- If a field is missing for a record, use empty string for text or 0 for numbers.
+- Return ALL item records you can reconstruct from the sample; do not summarize or skip any.`;
+      } else {
+        if (parsed.rows.length === 0) {
+          setStatus("error");
+          setMessage("No data rows found in the file.");
+          return;
+        }
+        const sample = parsed.rows.slice(0, 400);
+        prompt = `You are analyzing a product mix (PMix) export from a foodservice distributor. The data below is from an Excel/CSV file.
+The column headers are: ${JSON.stringify(parsed.headers)}
 The data rows (as JSON objects, keyed by those headers) are:
 ${JSON.stringify(sample)}
 
@@ -131,6 +175,8 @@ Extract every row into a clean structured list. For each row capture: item_numbe
 - If a field is missing, use empty string for text or 0 for numbers.
 - Return ALL rows; do not summarize or skip any.
 - Map the file's columns to these fields intelligently regardless of the exact column names used.`;
+      }
+
       const res = await base44.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: EXTRACT_SCHEMA,
