@@ -31,6 +31,19 @@ function getSignificantWords(desc) {
     .filter(w => w.length > 2 && !STOP_WORDS.has(w));
 }
 
+// Split significant words into "variant" words (no digits — the actual
+// product identity, e.g. "tropicana", "zero", "egg") and "pack" words
+// (contain digits — sizes/counts, e.g. "5lb", "12ct", "2"). Pack words are
+// ignored when comparing so pack-size differences don't block a match.
+function splitVariantWords(words) {
+  const variant = new Set();
+  words.forEach(w => {
+    if (/\d/.test(w)) return; // pack-size token, ignore
+    variant.add(w);
+  });
+  return variant;
+}
+
 function descriptionsMatch(pmixDesc, catalogDesc) {
   const aNorm = normalizeDesc(pmixDesc);
   const bNorm = normalizeDesc(catalogDesc);
@@ -39,25 +52,16 @@ function descriptionsMatch(pmixDesc, catalogDesc) {
   // Exact normalized match is always safe
   if (aNorm === bNorm) return true;
 
-  const aWords = getSignificantWords(pmixDesc);
-  const bWords = getSignificantWords(catalogDesc);
-  if (aWords.length === 0 || bWords.length === 0) return false;
+  const aVariant = splitVariantWords(getSignificantWords(pmixDesc));
+  const bVariant = splitVariantWords(getSignificantWords(catalogDesc));
+  if (aVariant.size === 0 || bVariant.size === 0) return false;
 
-  const aSet = new Set(aWords);
-  const bSet = new Set(bWords);
-  const shorter = aWords.length <= bWords.length ? aSet : bSet;
-  const longer = aWords.length <= bWords.length ? bSet : aSet;
-  let contained = 0;
-  shorter.forEach(w => { if (longer.has(w)) contained++; });
-
-  // If the shorter description has fewer than 2 significant words, a partial
-  // overlap is too generic (e.g. catalog "egg" vs pmix "hard boiled egg").
-  // Require an exact full-string match instead, which we already checked above.
-  if (shorter.size < 2) return false;
-
-  // Require ALL significant words of the shorter description to be present
-  // in the longer one — a single mismatch means a different product.
-  return contained === shorter.size;
+  // Require the variant (non-pack-size) word sets to be identical.
+  // Extra variant words (e.g. "zero", "sugar", "hard", "boiled") on either
+  // side mean a different product, so they must not match.
+  if (aVariant.size !== bVariant.size) return false;
+  for (const w of aVariant) if (!bVariant.has(w)) return false;
+  return true;
 }
 
 export function matchItemToCatalog(item, catalogItems) {
