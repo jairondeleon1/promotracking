@@ -23,6 +23,7 @@ function AccountCard({ account, pmixBatches, catalogItems, onDelete }) {
   const [selectedBatch, setSelectedBatch] = useState("all");
 
   const batches = pmixBatches.filter(b => b.account_name === account.account_name);
+  const batchCount = batches.length;
 
   const load = async () => {
     setLoading(true);
@@ -32,8 +33,8 @@ function AccountCard({ account, pmixBatches, catalogItems, onDelete }) {
   };
 
   useEffect(() => {
-    if (expanded && records.length === 0) load();
-  }, [expanded]);
+    if (expanded) load();
+  }, [expanded, batchCount]);
 
   const filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
 
@@ -364,6 +365,8 @@ export default function PmixTrackerPage() {
                   catalogItems={catalogItems}
                   onUploaded={(batchId, accountName, sellPeriod) => {
                     setPmixBatches(prev => [{ id: batchId, label: sellPeriod, account_name: accountName }, ...prev]);
+                    load();
+                    setActiveTab("accounts");
                   }}
                 />
                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
