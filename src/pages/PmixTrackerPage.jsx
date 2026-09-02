@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import * as XLSX from "xlsx";
+import PdfCatalogUpload from "../components/pmix/PdfCatalogUpload";
 
 // ─── PMix column mappings (case-insensitive) ────────────────────────────────
 function ciGet(row, ...keys) {
@@ -649,11 +650,13 @@ function PromotionCatalogPanel({ catalogItems, onRefresh }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-slate-700">
-          Promotion Catalog — {catalogItems.length} items
-        </h2>
-      </div>
+    <div className="flex items-center justify-between">
+      <h2 className="text-base font-semibold text-slate-700">
+        Promotion Catalog — {catalogItems.length} items
+      </h2>
+    </div>
+
+    <PdfCatalogUpload onExtracted={onRefresh} />
 
       {/* Manual add form */}
       <Card className="border-slate-200">
