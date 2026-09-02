@@ -1,0 +1,58 @@
+{
+  "name": "ProductMixRecord",
+  "type": "object",
+  "properties": {
+    "account_name": {
+      "type": "string",
+      "description": "Account / location name"
+    },
+    "sell_period": {
+      "type": "string",
+      "description": "Sell period label, e.g. July 2026"
+    },
+    "upload_batch_id": {
+      "type": "string",
+      "description": "UUID for this upload batch"
+    },
+    "order_number": {
+      "type": "string"
+    },
+    "order_date": {
+      "type": "string"
+    },
+    "item_number": {
+      "type": "string",
+      "description": "Distributor item / DIN"
+    },
+    "item_description": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "quantity_sold": {
+      "type": "number"
+    },
+    "unit_price": {
+      "type": "number"
+    },
+    "total_sales": {
+      "type": "number"
+    },
+    "upc": {
+      "type": "string"
+    },
+    "matched_promotion": {
+      "type": "string",
+      "description": "Promotion name this item matched to (if any)"
+    },
+    "matched_category": {
+      "type": "string",
+      "description": "Promotion category this item matched to"
+    }
+  },
+  "required": []
+}

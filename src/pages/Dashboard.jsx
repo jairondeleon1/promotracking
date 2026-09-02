@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
-import { BarChart2, Upload, Table2, TrendingUp, RefreshCw, Download } from "lucide-react";
+import { BarChart2, Upload, Table2, TrendingUp, RefreshCw, Download, PackageSearch } from "lucide-react";
 import { exportToPptx } from "../utils/exportToPptx";
 
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,7 @@ export default function Dashboard() {
             { label: "Overview", icon: BarChart2, to: "/" },
             { label: "Upload Data", icon: Upload, to: "/upload" },
             { label: "Data Table", icon: Table2, to: "/data-table" },
+            { label: "PMix Tracker", icon: PackageSearch, to: "/pmix-tracker" },
           ].map(({ label, icon: Icon, to }) => (
             <Link key={to} to={to}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${

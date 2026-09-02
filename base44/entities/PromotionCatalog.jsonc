@@ -1,0 +1,54 @@
+{
+  "name": "PromotionCatalog",
+  "type": "object",
+  "properties": {
+    "sell_period": {
+      "type": "string",
+      "description": "e.g. July 2026"
+    },
+    "promotion_category": {
+      "type": "string",
+      "description": "e.g. BOH BROADLINE, BEVERAGE BUMPER"
+    },
+    "din": {
+      "type": "string",
+      "description": "Distributor item number / DIN"
+    },
+    "manufacturer_min": {
+      "type": "string",
+      "description": "Mapped MIN from manufacturer"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "description": "Item description"
+    },
+    "pack_size": {
+      "type": "string"
+    },
+    "promotion_name": {
+      "type": "string",
+      "description": "e.g. Grilling Month, Seasonal Cookie"
+    },
+    "price": {
+      "type": "string",
+      "description": "Promotion price"
+    },
+    "est_delivery": {
+      "type": "string"
+    },
+    "upc": {
+      "type": "string"
+    },
+    "srp": {
+      "type": "string",
+      "description": "Suggested retail price"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": []
+}

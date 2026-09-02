@@ -1,0 +1,33 @@
+{
+  "name": "TrackedAccount",
+  "type": "object",
+  "properties": {
+    "account_name": {
+      "type": "string",
+      "description": "Name of the account / location"
+    },
+    "account_number": {
+      "type": "string"
+    },
+    "region": {
+      "type": "string"
+    },
+    "manager_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email to send PMix reports to"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_name"
+  ]
+}

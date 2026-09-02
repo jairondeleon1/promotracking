@@ -8,6 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Dashboard from './pages/Dashboard';
 import UploadPage from './pages/UploadPage';
 import DataTablePage from './pages/DataTablePage';
+import PmixTrackerPage from './pages/PmixTrackerPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,6 +35,7 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Dashboard />} />
       <Route path="/upload" element={<UploadPage />} />
       <Route path="/data-table" element={<DataTablePage />} />
+      <Route path="/pmix-tracker" element={<PmixTrackerPage />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
