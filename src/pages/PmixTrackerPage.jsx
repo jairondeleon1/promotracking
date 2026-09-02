@@ -2,84 +2,17 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import {
-  BarChart2, Upload, Table2, TrendingUp, RefreshCw,
+  BarChart2, Upload, Table2, RefreshCw,
   PackageSearch, Plus, Trash2, ChevronDown, ChevronRight,
-  CheckCircle2, XCircle, AlertCircle, FileSpreadsheet, Building2
+  CheckCircle2, XCircle, Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import * as XLSX from "xlsx";
 import PdfCatalogUpload from "../components/pmix/PdfCatalogUpload";
-
-// ─── PMix column mappings (case-insensitive) ────────────────────────────────
-function ciGet(row, ...keys) {
-  for (const key of keys) {
-    const target = key.toLowerCase().trim();
-    for (const k in row) {
-      if (k.toLowerCase().trim() === target) {
-        const v = row[k];
-        return v != null ? String(v).trim() : "";
-      }
-    }
-  }
-  return "";
-}
-
-function parseNum(val) {
-  if (!val || val === "") return 0;
-  return parseFloat(String(val).replace(/[$,\s]/g, "")) || 0;
-}
-
-function mapPmixRow(row, accountName, sellPeriod, batchId, catalogItems) {
-  const itemNumber = ciGet(row, "item number", "item_number", "din", "item no", "item#", "sysco din", "vistar din");
-  const desc = ciGet(row, "item description", "description", "product description", "product name", "name");
-  const qty = parseNum(ciGet(row, "quantity", "qty", "qty sold", "quantity sold", "units", "unit qty", "sold qty", "cases"));
-  const unitPrice = parseNum(ciGet(row, "unit price", "price", "ext price", "extended price"));
-  const totalSales = parseNum(ciGet(row, "total", "total sales", "extended amount", "amount", "total amount", "sales amount")) || qty * unitPrice;
-  const brand = ciGet(row, "brand", "manufacturer", "vendor");
-  const category = ciGet(row, "category", "class", "group", "department");
-  const upc = ciGet(row, "upc", "upc code", "12 digit upc");
-  const orderNum = ciGet(row, "order number", "order no", "order#");
-  const orderDate = ciGet(row, "order date", "date", "transaction date");
-
-  if (!desc && !itemNumber) return null;
-
-  // Try to match against catalog
-  let matchedPromo = "";
-  let matchedCat = "";
-  if (itemNumber) {
-    const hit = catalogItems.find(c =>
-      (c.din && c.din.trim() === itemNumber.trim()) ||
-      (c.manufacturer_min && c.manufacturer_min.trim() === itemNumber.trim()) ||
-      (c.upc && c.upc.trim() === upc.trim() && upc)
-    );
-    if (hit) {
-      matchedPromo = hit.promotion_name || hit.promotion_category || "";
-      matchedCat = hit.promotion_category || "";
-    }
-  }
-
-  return {
-    account_name: accountName,
-    sell_period: sellPeriod,
-    upload_batch_id: batchId,
-    order_number: orderNum,
-    order_date: orderDate,
-    item_number: itemNumber,
-    item_description: desc,
-    brand,
-    category,
-    quantity_sold: qty,
-    unit_price: unitPrice,
-    total_sales: totalSales,
-    upc,
-    matched_promotion: matchedPromo,
-    matched_category: matchedCat,
-  };
-}
+import PmixUploadPanel from "../components/pmix/PmixUploadPanel";
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -242,172 +175,6 @@ function AccountCard({ account, pmixBatches, catalogItems, onDelete }) {
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Upload PMix Modal ───────────────────────────────────────────────────────
-function UploadPmixPanel({ accounts, catalogItems, onUploaded }) {
-  const [file, setFile] = useState(null);
-  const [accountName, setAccountName] = useState("");
-  const [sellPeriod, setSellPeriod] = useState("");
-  const [status, setStatus] = useState(null);
-  const [message, setMessage] = useState("");
-  const [preview, setPreview] = useState([]);
-
-  const parseFile = (f) => new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const wb = XLSX.read(ev.target.result, { type: "array", cellDates: false });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      // Find header row (look for "Order Number" or "Item" etc.)
-      const raw = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, header: 1 });
-      // Find first row that looks like a header
-      let headerIdx = 0;
-      for (let i = 0; i < Math.min(10, raw.length); i++) {
-        const rowStr = raw[i].join(" ").toLowerCase();
-        if (rowStr.includes("order") || rowStr.includes("item") || rowStr.includes("quantity") || rowStr.includes("description")) {
-          headerIdx = i;
-          break;
-        }
-      }
-      const headers = raw[headerIdx].map(h => String(h).trim());
-      const rows = [];
-      for (let i = headerIdx + 1; i < raw.length; i++) {
-        if (!raw[i].some(v => v !== "")) continue;
-        const obj = {};
-        headers.forEach((h, idx) => { obj[h] = String(raw[i][idx] ?? "").trim(); });
-        rows.push(obj);
-      }
-      resolve(rows);
-    };
-    reader.readAsArrayBuffer(f);
-  });
-
-  const handleFileChange = async (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    setFile(f);
-    setStatus(null);
-    const rows = await parseFile(f);
-    setPreview(rows.slice(0, 3));
-  };
-
-  const handleUpload = async () => {
-    if (!file || !accountName.trim() || !sellPeriod.trim()) {
-      setStatus("error");
-      setMessage("Please fill in all fields and select a file.");
-      return;
-    }
-    setStatus("loading");
-    const rows = await parseFile(file);
-    const batchId = crypto.randomUUID();
-    const mapped = rows
-      .map(r => mapPmixRow(r, accountName.trim(), sellPeriod.trim(), batchId, catalogItems))
-      .filter(Boolean)
-      .filter(r => r.item_description || r.item_number);
-
-    if (mapped.length === 0) {
-      setStatus("error");
-      setMessage("No valid rows found. Check the file format.");
-      return;
-    }
-
-    const chunkSize = 50;
-    for (let i = 0; i < mapped.length; i += chunkSize) {
-      await base44.entities.ProductMixRecord.bulkCreate(mapped.slice(i, i + chunkSize));
-    }
-    setStatus("success");
-    setMessage(`Imported ${mapped.length} rows for "${accountName}" — ${mapped.filter(r => r.matched_promotion).length} matched to active promotions.`);
-    onUploaded(batchId, accountName, sellPeriod);
-    setFile(null);
-    setPreview([]);
-  };
-
-  return (
-    <Card className="border-slate-200">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <FileSpreadsheet className="w-4 h-4 text-blue-600" /> Upload Product Mix (PMix)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Account Name <span className="text-red-500">*</span></Label>
-            <Input
-              placeholder="e.g. Nike - NALC Victory"
-              value={accountName}
-              onChange={e => setAccountName(e.target.value)}
-              list="account-suggestions"
-            />
-            <datalist id="account-suggestions">
-              {accounts.map(a => <option key={a.id} value={a.account_name} />)}
-            </datalist>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Sell Period <span className="text-red-500">*</span></Label>
-            <Input
-              placeholder="e.g. July 2026"
-              value={sellPeriod}
-              onChange={e => setSellPeriod(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs">PMix File (.xlsx / .xls / .csv) <span className="text-red-500">*</span></Label>
-          <div className="border-2 border-dashed border-slate-200 rounded-lg p-5 text-center hover:border-blue-400 transition-colors">
-            <Upload className="w-6 h-6 text-slate-300 mx-auto mb-1" />
-            <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileChange} className="hidden" id="pmix-input" />
-            <label htmlFor="pmix-input" className="cursor-pointer text-sm text-blue-600 hover:underline font-medium">
-              {file ? file.name : "Click to select PMix file"}
-            </label>
-          </div>
-        </div>
-
-        {preview.length > 0 && (
-          <div className="overflow-x-auto rounded border border-slate-100 text-xs">
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>{Object.keys(preview[0]).slice(0, 7).map(h => (
-                  <th key={h} className="px-2 py-1.5 text-left text-slate-500 font-medium whitespace-nowrap">{h}</th>
-                ))}</tr>
-              </thead>
-              <tbody>
-                {preview.map((row, i) => (
-                  <tr key={i} className="border-t border-slate-100">
-                    {Object.values(row).slice(0, 7).map((v, j) => (
-                      <td key={j} className="px-2 py-1.5 text-slate-600 whitespace-nowrap max-w-[140px] truncate">{v}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {status === "error" && (
-          <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-lg p-3 text-sm">
-            <AlertCircle className="w-4 h-4 shrink-0" /> {message}
-          </div>
-        )}
-        {status === "success" && (
-          <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg p-3 text-sm">
-            <CheckCircle2 className="w-4 h-4 shrink-0" /> {message}
-          </div>
-        )}
-
-        <Button
-          onClick={handleUpload}
-          disabled={status === "loading" || !file || !accountName.trim() || !sellPeriod.trim()}
-          className="bg-blue-600 hover:bg-blue-700 text-white w-full gap-2"
-        >
-          {status === "loading"
-            ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Importing & Matching...</>
-            : <><Upload className="w-4 h-4" /> Import PMix</>}
-        </Button>
       </CardContent>
     </Card>
   );
@@ -592,7 +359,7 @@ export default function PmixTrackerPage() {
             {/* Upload Tab */}
             {activeTab === "upload" && (
               <div className="max-w-2xl">
-                <UploadPmixPanel
+                <PmixUploadPanel
                   accounts={accounts}
                   catalogItems={catalogItems}
                   onUploaded={(batchId, accountName, sellPeriod) => {
