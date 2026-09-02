@@ -122,19 +122,8 @@ function applyMapping(rows, mapping) {
   }).filter(Boolean);
 }
 
-function matchToCatalog(item, catalogItems) {
-  const itemNum = (item.item_number || "").trim();
-  const upc = (item.upc || "").trim();
-  if (itemNum) {
-    const hit = catalogItems.find(c =>
-      (c.din && c.din.trim() === itemNum) ||
-      (c.manufacturer_min && c.manufacturer_min.trim() === itemNum) ||
-      (c.upc && c.upc.trim() === upc && upc)
-    );
-    if (hit) return { matched_promotion: hit.promotion_name || hit.promotion_category || "", matched_category: hit.promotion_category || "" };
-  }
-  return { matched_promotion: "", matched_category: "" };
-}
+import { matchItemToCatalog } from "@/utils/pmixMatch";
+// (matchItemToCatalog replaces the old matchToCatalog — see src/utils/pmixMatch.js)
 
 export default function PmixUploadPanel({ accounts, catalogItems, onUploaded }) {
   const [file, setFile] = useState(null);
@@ -280,7 +269,7 @@ For each target field, return the EXACT source column name from the headers abov
     const batchId = crypto.randomUUID();
     const records = extracted
       .map(it => {
-        const m = matchToCatalog(it, catalogItems);
+        const m = matchItemToCatalog(it, catalogItems);
         return {
           account_name: accountName.trim(),
           sell_period: sellPeriod.trim(),

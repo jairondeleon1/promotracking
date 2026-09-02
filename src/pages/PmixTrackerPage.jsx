@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import PdfCatalogUpload from "../components/pmix/PdfCatalogUpload";
 import PmixUploadPanel from "../components/pmix/PmixUploadPanel";
+import { reMatchRecords } from "@/utils/pmixMatch";
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -28,13 +29,13 @@ function AccountCard({ account, pmixBatches, catalogItems, onDelete }) {
   const load = async () => {
     setLoading(true);
     const data = await base44.entities.ProductMixRecord.filter({ account_name: account.account_name });
-    setRecords(data);
+    setRecords(reMatchRecords(data, catalogItems));
     setLoading(false);
   };
 
   useEffect(() => {
     if (expanded) load();
-  }, [expanded, batchCount]);
+  }, [expanded, batchCount, catalogItems]);
 
   const filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
 
