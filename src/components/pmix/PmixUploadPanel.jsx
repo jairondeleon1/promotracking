@@ -1,35 +1,33 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Sparkles, Loader2, Building2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import * as XLSX from "xlsx";
 
-const EXTRACT_SCHEMA = {
+const MAPPING_SCHEMA = {
   type: "object",
   properties: {
-    items: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          item_number: { type: "string", description: "Distributor item number / DIN" },
-          item_description: { type: "string" },
-          brand: { type: "string" },
-          category: { type: "string" },
-          quantity_sold: { type: "number" },
-          unit_price: { type: "number" },
-          total_sales: { type: "number" },
-          upc: { type: "string" },
-          order_number: { type: "string" },
-          order_date: { type: "string" },
-        },
+    column_mapping: {
+      type: "object",
+      description: "Maps each target field to the source column name that contains it",
+      properties: {
+        item_number: { type: "string", description: "Source column name for distributor item number / DIN" },
+        item_description: { type: "string", description: "Source column name for item description" },
+        brand: { type: "string" },
+        category: { type: "string" },
+        quantity_sold: { type: "string", description: "Source column name for quantity sold" },
+        unit_price: { type: "string", description: "Source column name for unit price" },
+        total_sales: { type: "string", description: "Source column name for total/extended sales amount" },
+        upc: { type: "string" },
+        order_number: { type: "string" },
+        order_date: { type: "string" },
       },
     },
   },
-  required: ["items"],
+  required: ["column_mapping"],
 };
 
 function parseFileLocal(f) {
@@ -55,7 +53,6 @@ function parseFileLocal(f) {
         const isStacked = maxCols <= 2;
 
         if (isStacked) {
-          // Flatten all non-empty cell values into a single ordered list
           const flatValues = [];
           for (const r of raw) {
             const cellVal = String(r[0] ?? "").trim();
@@ -65,15 +62,20 @@ function parseFileLocal(f) {
           return;
         }
 
-        // Normal tabular format — find header row and map rows to objects
+        // Normal tabular format — find header row by scoring keyword matches
+        const fieldKeywords = ["item", "order", "quantity", "price", "description", "date", "brand", "category", "sales", "upc", "check", "subtotal", "total"];
+        let bestScore = 0;
         let headerIdx = 0;
-        for (let i = 0; i < Math.min(10, raw.length); i++) {
-          const rowStr = raw[i].join(" ").toLowerCase();
-          if (rowStr.includes("item") || rowStr.includes("order") || rowStr.includes("quantity") || rowStr.includes("description") || rowStr.includes("product")) {
-            headerIdx = i;
-            break;
+        for (let i = 0; i < Math.min(20, raw.length); i++) {
+          let score = 0;
+          for (const cell of raw[i]) {
+            const lc = String(cell ?? "").toLowerCase().trim();
+            if (lc === "") continue;
+            if (fieldKeywords.some(kw => lc.includes(kw))) score++;
           }
+          if (score > bestScore) { bestScore = score; headerIdx = i; }
         }
+        if (bestScore < 2) headerIdx = 0;
         const headers = raw[headerIdx].map(h => String(h).trim());
         const rows = [];
         for (let i = headerIdx + 1; i < raw.length; i++) {
@@ -82,12 +84,42 @@ function parseFileLocal(f) {
           headers.forEach((h, idx) => { obj[h] = String(raw[i][idx] ?? "").trim(); });
           rows.push(obj);
         }
-        resolve({ isStacked: false, headers, rows, flatValues: [], rawRows: raw });
+        resolve({ isStacked: false, headers, rows, flatValues: [] });
       } catch (e) { reject(e); }
     };
     reader.onerror = reject;
     reader.readAsArrayBuffer(f);
   });
+}
+
+function parseNum(val) {
+  if (!val || val === "") return 0;
+  return parseFloat(String(val).replace(/[$,\s]/g, "")) || 0;
+}
+
+function applyMapping(rows, mapping) {
+  return rows.map(row => {
+    const get = (field) => {
+      const colName = mapping[field];
+      if (!colName) return "";
+      return row[colName] ?? "";
+    };
+    const desc = get("item_description");
+    const itemNum = get("item_number");
+    if (!desc && !itemNum) return null;
+    return {
+      item_number: itemNum,
+      item_description: desc,
+      brand: get("brand"),
+      category: get("category"),
+      quantity_sold: parseNum(get("quantity_sold")),
+      unit_price: parseNum(get("unit_price")),
+      total_sales: parseNum(get("total_sales")),
+      upc: get("upc"),
+      order_number: get("order_number"),
+      order_date: get("order_date"),
+    };
+  }).filter(Boolean);
 }
 
 function matchToCatalog(item, catalogItems) {
@@ -140,48 +172,94 @@ export default function PmixUploadPanel({ accounts, catalogItems, onUploaded }) 
   const handleExtract = async () => {
     if (!file) return;
     setStatus("extracting");
-    setMessage("Reading the PMix file with AI — this can take 20-40 seconds...");
+    setMessage("Reading the PMix file with AI — this can take 10-20 seconds...");
     try {
       const parsed = await parseFileLocal(file);
 
-      let prompt;
       if (parsed.isStacked) {
-        // Stacked format: all values are in a single column, alternating labels and values
+        // Stacked format fallback — send raw values to LLM for full reconstruction
         const sample = parsed.flatValues.slice(0, 600);
-        prompt = `You are analyzing a product mix (PMix) export from a foodservice distributor. The file is in a STACKED / vertical format: all data is in a single column where field labels and field values alternate down the rows. Each order/item record is represented by a sequence of label-value pairs before the next record begins.
+        const prompt = `You are analyzing a product mix (PMix) export from a foodservice distributor. The file is in a STACKED / vertical format: all data is in a single column where field labels and field values alternate down the rows.
 
 Here are the raw cell values from column A, in order (first ${sample.length} of ${parsed.flatValues.length}):
 ${JSON.stringify(sample)}
 
-Reconstruct the individual item records from this stacked label-value stream. Common field labels you will encounter include: Order Number, Order Date, Item Number, Item Description (or Description), Brand, Category (or Class), Quantity (or Qty Sold), Unit Price (or Price), Total Sales (or Extended Amount), UPC. 
-- Group consecutive label-value pairs into records — a new record typically starts when you see "Order Number" or "Item Number" again after a complete set of fields.
-- Convert quantity and price values to numbers (strip $ and commas).
-- If a field is missing for a record, use empty string for text or 0 for numbers.
-- Return ALL item records you can reconstruct from the sample; do not summarize or skip any.`;
-      } else {
-        if (parsed.rows.length === 0) {
-          setStatus("error");
-          setMessage("No data rows found in the file.");
-          return;
-        }
-        const sample = parsed.rows.slice(0, 400);
-        prompt = `You are analyzing a product mix (PMix) export from a foodservice distributor. The data below is from an Excel/CSV file.
-The column headers are: ${JSON.stringify(parsed.headers)}
-The data rows (as JSON objects, keyed by those headers) are:
-${JSON.stringify(sample)}
-
-Extract every row into a clean structured list. For each row capture: item_number (the distributor item number / DIN), item_description, brand, category, quantity_sold (numeric), unit_price (numeric), total_sales (numeric), upc, order_number, and order_date.
+Reconstruct the individual item records from this stacked label-value stream. Common field labels include: Order Number, Order Date, Item Number, Item Description, Brand, Category, Quantity, Unit Price, Total Sales, UPC.
+- Group consecutive label-value pairs into records.
 - Convert quantity and price values to numbers (strip $ and commas).
 - If a field is missing, use empty string for text or 0 for numbers.
-- Return ALL rows; do not summarize or skip any.
-- Map the file's columns to these fields intelligently regardless of the exact column names used.`;
+- Return ALL item records you can reconstruct from the sample.`;
+        const res = await base44.integrations.Core.InvokeLLM({
+          prompt,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    item_number: { type: "string" },
+                    item_description: { type: "string" },
+                    brand: { type: "string" },
+                    category: { type: "string" },
+                    quantity_sold: { type: "number" },
+                    unit_price: { type: "number" },
+                    total_sales: { type: "number" },
+                    upc: { type: "string" },
+                    order_number: { type: "string" },
+                    order_date: { type: "string" },
+                  },
+                },
+              },
+            },
+            required: ["items"],
+          },
+        });
+        const items = (res && res.items) || [];
+        if (items.length === 0) {
+          setStatus("error");
+          setMessage("No items could be extracted from this file.");
+          return;
+        }
+        setExtracted(items);
+        setStatus("preview");
+        setMessage(`Extracted ${items.length} items. Review and click Import to save.`);
+        return;
       }
 
+      // Normal tabular format — use AI for column mapping, then apply locally to ALL rows
+      if (parsed.rows.length === 0) {
+        setStatus("error");
+        setMessage("No data rows found in the file.");
+        return;
+      }
+      const sampleRows = parsed.rows.slice(0, 5);
+      const prompt = `You are analyzing a product mix (PMix) export from a foodservice distributor. The file has these column headers:
+${JSON.stringify(parsed.headers)}
+
+Here are ${sampleRows.length} sample data rows (as JSON objects keyed by those headers):
+${JSON.stringify(sampleRows)}
+
+Map each source column to the correct target field. The target fields are:
+- item_number: distributor item number / DIN (if present)
+- item_description: the item/product name or description
+- brand: brand name (if present)
+- category: category/class (if present)
+- quantity_sold: quantity sold (numeric)
+- unit_price: per-unit price (numeric)
+- total_sales: line-item total / extended amount (numeric)
+- upc: UPC code (if present)
+- order_number: order/check number
+- order_date: order date
+
+For each target field, return the EXACT source column name from the headers above that best matches. If no column matches a field, return empty string for that field. Only use column names that exist in the headers.`;
       const res = await base44.integrations.Core.InvokeLLM({
         prompt,
-        response_json_schema: EXTRACT_SCHEMA,
+        response_json_schema: MAPPING_SCHEMA,
       });
-      const items = (res && res.items) || [];
+      const mapping = (res && res.column_mapping) || {};
+      const items = applyMapping(parsed.rows, mapping);
       if (items.length === 0) {
         setStatus("error");
         setMessage("No items could be extracted from this file.");
@@ -189,7 +267,7 @@ Extract every row into a clean structured list. For each row capture: item_numbe
       }
       setExtracted(items);
       setStatus("preview");
-      setMessage(`Extracted ${items.length} items. Review and click Import to save.`);
+      setMessage(`Extracted ${items.length} items from ${parsed.rows.length} rows. Review and click Import to save.`);
     } catch (err) {
       setStatus("error");
       setMessage("Extraction failed: " + (err?.message || "unknown error"));
@@ -202,7 +280,6 @@ Extract every row into a clean structured list. For each row capture: item_numbe
     const batchId = crypto.randomUUID();
     const records = extracted
       .map(it => {
-        if (!it.item_description && !it.item_number) return null;
         const m = matchToCatalog(it, catalogItems);
         return {
           account_name: accountName.trim(),
@@ -221,8 +298,7 @@ Extract every row into a clean structured list. For each row capture: item_numbe
           matched_promotion: m.matched_promotion,
           matched_category: m.matched_category,
         };
-      })
-      .filter(Boolean);
+      });
 
     if (records.length === 0) {
       setStatus("error");
@@ -376,7 +452,7 @@ Extract every row into a clean structured list. For each row capture: item_numbe
             >
               {status === "saving"
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
-                : <><Upload className="w-4 h-4" /> Import {extracted.length} items</>}
+                : <><Upload className="w-4 h-4" /> Import {extracted.length.toLocaleString()} items</>}
             </Button>
           )}
         </div>
