@@ -6,6 +6,7 @@ import { exportToPptx } from "../utils/exportToPptx";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatsOverview from "../components/dashboard/StatsOverview";
 import MonthFilter from "../components/dashboard/MonthFilter";
 
@@ -15,11 +16,26 @@ export default function Dashboard() {
   const [selectedBatch, setSelectedBatch] = useState("all");
   const [batches, setBatches] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [exportStation, setExportStation] = useState("all");
+
+  const stations = React.useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    records.forEach(r => {
+      const s = (r.marketplace || "").trim();
+      if (s && !seen.has(s)) { seen.add(s); list.push(s); }
+    });
+    return list.sort((a, b) => a.localeCompare(b));
+  }, [records]);
 
   const handleExport = async () => {
     setExporting(true);
-    const filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
-    const label = selectedBatch === "all" ? "all" : (batches.find(b => b.id === selectedBatch)?.label || selectedBatch);
+    let filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
+    if (exportStation !== "all") filtered = filtered.filter(r => (r.marketplace || "").trim() === exportStation);
+    const parts = [];
+    if (selectedBatch !== "all") parts.push(batches.find(b => b.id === selectedBatch)?.label || selectedBatch);
+    if (exportStation !== "all") parts.push(exportStation);
+    const label = parts.length ? parts.join(" - ") : "all";
     await exportToPptx(filtered, label);
     setExporting(false);
   };
@@ -59,6 +75,15 @@ export default function Dashboard() {
             <Button variant="outline" size="sm" onClick={load} className="gap-2 text-slate-600">
               <RefreshCw className="w-4 h-4" /> Refresh
             </Button>
+            <Select value={exportStation} onValueChange={setExportStation}>
+              <SelectTrigger className="w-48 h-8 text-xs bg-white border-slate-200">
+                <SelectValue placeholder="All stations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stations</SelectItem>
+                {stations.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || records.length === 0} className="gap-2 text-slate-600">
               {exporting ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
               Export PPTX
