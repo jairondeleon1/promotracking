@@ -502,6 +502,18 @@ function addDetailedRecordsSlide(pptx, records) {
   }
 }
 
+export async function exportDataOnlyPptx(records, stationLabel) {
+  const pptx = new PptxGenJS();
+  pptx.layout = "LAYOUT_WIDE";
+  pptx.title = "Promotion Records";
+
+  addTitleSlide(pptx, stationLabel);
+  addDetailedRecordsSlide(pptx, records);
+
+  const safeName = (stationLabel || "all").replace(/\s+/g, "_");
+  await pptx.writeFile({ fileName: `Promotion_Records_${safeName}.pptx` });
+}
+
 // ── Main export ──────────────────────────────────────────────────────────────
 
 export async function exportToPptx(records, month) {

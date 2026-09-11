@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { BarChart2, Upload, Table2, TrendingUp, RefreshCw, Download, FileSpreadsheet } from "lucide-react";
-import { exportToPptx } from "../utils/exportToPptx";
-import { exportToCsv } from "../utils/exportToCsv";
+
+import { exportToPptx, exportDataOnlyPptx } from "../utils/exportToPptx";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,11 +41,14 @@ export default function Dashboard() {
     setExporting(false);
   };
 
-  const handleDownloadCsv = () => {
+  const [downloading, setDownloading] = useState(false);
+  const handleDownloadData = async () => {
+    setDownloading(true);
     let filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
     if (exportStation !== "all") filtered = filtered.filter(r => (r.marketplace || "").trim() === exportStation);
     const label = exportStation !== "all" ? exportStation : "all";
-    exportToCsv(filtered, label);
+    await exportDataOnlyPptx(filtered, label);
+    setDownloading(false);
   };
 
   const load = async () => {
@@ -96,8 +99,9 @@ export default function Dashboard() {
               {exporting ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
               Export PPTX
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownloadCsv} disabled={records.length === 0} className="gap-2 text-slate-600">
-              <FileSpreadsheet className="w-4 h-4" /> Download CSV
+            <Button variant="outline" size="sm" onClick={handleDownloadData} disabled={downloading || records.length === 0} className="gap-2 text-slate-600">
+              {downloading ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+              Download Data
             </Button>
             <Link to="/upload">
               <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
