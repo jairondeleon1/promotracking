@@ -47,6 +47,13 @@ function parseCSV(text) {
   return rows;
 }
 
+function normalizePromotion(p) {
+  if (!p) return "";
+  const norm = p.replace(/[''`]/g, "").trim().toLowerCase();
+  if (["chef table", "chefs table", "chef tables", "chef's table"].includes(norm)) return "Chef Table";
+  return p.trim();
+}
+
 function ciGet(row, key) {
   const target = key.toLowerCase().trim();
   for (const k in row) {
@@ -64,7 +71,7 @@ function mapRow(row, uploadMonth, batchId) {
     marketplace,
     region,
     manager_name: row["MANAGER NAME"] || "",
-    promotion: (row["PROMOTION"] || "").trim(),
+    promotion: normalizePromotion(row["PROMOTION"] || ""),
     date_run: row["DATE RUN"] || "",
     day_of_week: (row["DAY OF THE WEEK RUN"] || "").trim(),
     price_sold: row["PRICE SOLD"] || "",
