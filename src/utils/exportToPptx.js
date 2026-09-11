@@ -126,6 +126,25 @@ function buildAvgByPromotionRegionSeries(records) {
   };
 }
 
+function buildMarketplaceByAppSeries(records) {
+  const apps = [...new Set(records.map(r => r.mobile_app).filter(Boolean))];
+  const marketplaces = [...new Set(records.map(r => r.marketplace).filter(Boolean))];
+  const totals = {};
+  marketplaces.forEach(m => { totals[m] = 0; });
+  records.forEach(r => { if (r.marketplace) totals[r.marketplace] += r.portions_sold || 0; });
+  const sortedMkts = marketplaces.sort((a, b) => totals[b] - totals[a]).slice(0, 12);
+  const byMktApp = {};
+  sortedMkts.forEach(m => { byMktApp[m] = {}; apps.forEach(a => { byMktApp[m][a] = 0; }); });
+  records.forEach(r => {
+    if (!r.marketplace || !r.mobile_app || !byMktApp[r.marketplace]) return;
+    byMktApp[r.marketplace][r.mobile_app] += r.portions_sold || 0;
+  });
+  return {
+    groups: sortedMkts.map(m => m.length > 22 ? m.slice(0, 20) + "…" : m),
+    seriesData: apps.map(a => ({ name: a, values: sortedMkts.map(m => byMktApp[m][a] || 0) })),
+  };
+}
+
 // ── Shared layout helpers ────────────────────────────────────────────────────
 
 /** Adds the dark navy header bar + bold uppercase title to a slide */
@@ -507,7 +526,40 @@ export async function exportDataOnlyPptx(records, stationLabel) {
   pptx.layout = "LAYOUT_WIDE";
   pptx.title = "Promotion Records";
 
+  const validRecords = records.filter(r => r.portions_sold > 0);
   addTitleSlide(pptx, stationLabel);
+
+  addBarChartSlide(pptx,
+    "Total Portions Sold by Promotion",
+    "Which promotions drove the highest total volume of portions sold.",
+    "Portions", aggregateByPromotion(validRecords), NAVY);
+
+  addBarChartSlide(pptx,
+    "Total Sales ($) by Promotion",
+    "Total dollar sales generated per promotion.",
+    "Sales ($)", aggregateSalesByPromotion(validRecords), GOLD.replace("#",""));
+
+  addBarChartSlide(pptx,
+    "Total Portions Sold by Day of Week",
+    "Which days of the week generate the most promotion activity.",
+    "Portions", aggregateByDay(validRecords), CYAN);
+
+  const mktApp = buildMarketplaceByAppSeries(validRecords);
+  addGroupedBarChartSlide(pptx,
+    "Total Portions by Marketplace & Mobile App",
+    "Portions sold at each marketplace, broken down by mobile app.",
+    mktApp.groups, mktApp.seriesData);
+
+  addBarChartSlide(pptx,
+    "Total Portions Sold by Business Type",
+    "Which business types generated the highest total portions sold.",
+    "Portions", aggregateByBusinessType(validRecords), BLUE);
+
+  addBarChartSlide(pptx,
+    "Total Portions Sold by Recipe Run",
+    "Which recipe runs generated the highest total portions sold.",
+    "Portions", aggregateByRecipeRun(validRecords), PURPLE);
+
   addDetailedRecordsSlide(pptx, records);
 
   const safeName = (stationLabel || "all").replace(/\s+/g, "_");
