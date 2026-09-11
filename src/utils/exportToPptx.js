@@ -225,6 +225,7 @@ function addKpiSlide(pptx, records) {
 }
 
 function addBarChartSlide(pptx, title, description, seriesName, chartData, color) {
+  if (!chartData || !chartData.length) return;
   const slide = pptx.addSlide();
   slide.background = { color: WHITE };
   addSlideHeader(slide, title);
@@ -259,6 +260,7 @@ function addBarChartSlide(pptx, title, description, seriesName, chartData, color
 }
 
 function addGroupedBarChartSlide(pptx, title, description, groups, seriesData) {
+  if (!groups || !groups.length || !seriesData || !seriesData.length) return;
   const slide = pptx.addSlide();
   slide.background = { color: WHITE };
   addSlideHeader(slide, title);
@@ -529,38 +531,43 @@ export async function exportDataOnlyPptx(records, stationLabel) {
   const validRecords = records.filter(r => r.portions_sold > 0);
   addTitleSlide(pptx, stationLabel);
 
-  addBarChartSlide(pptx,
+  const promoData = aggregateByPromotion(validRecords);
+  if (promoData.length) addBarChartSlide(pptx,
     "Total Portions Sold by Promotion",
     "Which promotions drove the highest total volume of portions sold.",
-    "Portions", aggregateByPromotion(validRecords), NAVY);
+    "Portions", promoData, NAVY);
 
-  addBarChartSlide(pptx,
+  const salesData = aggregateSalesByPromotion(validRecords);
+  if (salesData.length) addBarChartSlide(pptx,
     "Total Sales ($) by Promotion",
     "Total dollar sales generated per promotion.",
-    "Sales ($)", aggregateSalesByPromotion(validRecords), GOLD.replace("#",""));
+    "Sales ($)", salesData, GOLD.replace("#",""));
 
-  addBarChartSlide(pptx,
+  const dayData = aggregateByDay(validRecords);
+  if (dayData.length) addBarChartSlide(pptx,
     "Total Portions Sold by Day of Week",
     "Which days of the week generate the most promotion activity.",
-    "Portions", aggregateByDay(validRecords), CYAN);
+    "Portions", dayData, CYAN);
 
   const mktApp = buildMarketplaceByAppSeries(validRecords);
-  addGroupedBarChartSlide(pptx,
+  if (mktApp.groups.length && mktApp.seriesData.length) addGroupedBarChartSlide(pptx,
     "Total Portions by Marketplace & Mobile App",
     "Portions sold at each marketplace, broken down by mobile app.",
     mktApp.groups, mktApp.seriesData);
 
-  addBarChartSlide(pptx,
+  const btData = aggregateByBusinessType(validRecords);
+  if (btData.length) addBarChartSlide(pptx,
     "Total Portions Sold by Business Type",
     "Which business types generated the highest total portions sold.",
-    "Portions", aggregateByBusinessType(validRecords), BLUE);
+    "Portions", btData, BLUE);
 
-  addBarChartSlide(pptx,
+  const rrData = aggregateByRecipeRun(validRecords);
+  if (rrData.length) addBarChartSlide(pptx,
     "Total Portions Sold by Recipe Run",
     "Which recipe runs generated the highest total portions sold.",
-    "Portions", aggregateByRecipeRun(validRecords), PURPLE);
+    "Portions", rrData, PURPLE);
 
-  addDetailedRecordsSlide(pptx, records);
+  if (records.length) addDetailedRecordsSlide(pptx, records);
 
   const safeName = (stationLabel || "all").replace(/\s+/g, "_");
   await pptx.writeFile({ fileName: `Promotion_Records_${safeName}.pptx` });
