@@ -44,10 +44,8 @@ export default function Dashboard() {
   const [downloading, setDownloading] = useState(false);
   const handleDownloadData = async () => {
     setDownloading(true);
-    let filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
-    if (exportStation !== "all") filtered = filtered.filter(r => (r.marketplace || "").trim() === exportStation);
-    const label = exportStation !== "all" ? exportStation : "all";
-    await exportDataOnlyPptx(filtered, label);
+    const filtered = records.filter(r => (r.marketplace || "").trim().toLowerCase() === "chef tables");
+    await exportDataOnlyPptx(filtered, "Chef Tables");
     setDownloading(false);
   };
 
