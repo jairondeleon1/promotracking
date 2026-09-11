@@ -442,6 +442,66 @@ function addAppPromotionSlide(pptx, records) {
   });
 }
 
+function addDetailedRecordsSlide(pptx, records) {
+  const slide = pptx.addSlide();
+  slide.background = { color: WHITE };
+  addSlideHeader(slide, "Detailed Promotion Records");
+  addFooterBar(slide);
+
+  slide.addText("Full breakdown of promotions sold: location, business type, marketplace, mobile app, day of week, and total sales.", {
+    x: 0.4, y: 0.98, w: 12.5, h: 0.38,
+    fontSize: 13, color: MID_GRAY, italic: true, fontFace: "Calibri",
+  });
+
+  const maxRows = Math.min(records.length, 20);
+  const rows = records.slice(0, maxRows);
+  const fontSize = rows.length > 14 ? 7 : 8;
+  const rowH = rows.length > 14 ? 0.24 : 0.28;
+
+  const hOpts = { bold: true, color: WHITE, fill: NAVY, fontFace: "Calibri", fontSize };
+  const headerRow = [
+    { text: "MARKETPLACE", options: hOpts },
+    { text: "LOCATION", options: hOpts },
+    { text: "PROMOTION", options: hOpts },
+    { text: "BUSINESS TYPE", options: hOpts },
+    { text: "DATE", options: hOpts },
+    { text: "DAY", options: hOpts },
+    { text: "MOBILE APP", options: hOpts },
+    { text: "PORTIONS", options: { ...hOpts, align: "right" } },
+    { text: "TOTAL SALES", options: { ...hOpts, align: "right" } },
+  ];
+
+  const tableRows = [headerRow, ...rows.map((r, i) => {
+    const bg = i % 2 === 0 ? WHITE : OFF_WHITE;
+    const cell = (text, align = "left") => ({ text: String(text ?? ""), options: { fill: bg, fontSize, fontFace: "Calibri", color: DARK_TEXT, align } });
+    return [
+      cell(r.marketplace),
+      cell(r.region),
+      cell(r.promotion),
+      cell(r.business_type),
+      cell(r.date_run),
+      cell(r.day_of_week),
+      cell(r.mobile_app),
+      cell((r.portions_sold ?? 0).toLocaleString(), "right"),
+      cell(r.total_promotion_sales != null ? `$${Number(r.total_promotion_sales).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "", "right"),
+    ];
+  })];
+
+  slide.addTable(tableRows, {
+    x: 0.3, y: 1.38, w: 12.7, rowH,
+    border: { color: "E2E8F0", pt: 0.5 },
+    colW: [2.0, 1.5, 2.2, 1.4, 1.0, 0.9, 1.2, 1.1, 1.4],
+    autoPage: true,
+  });
+
+  if (records.length > maxRows) {
+    slide.addText(`Showing top ${maxRows} of ${records.length} records.`, {
+      x: 0.4, y: 7.0, w: 12.5, h: 0.3,
+      fontSize: 9, color: MID_GRAY, italic: true, fontFace: "Calibri",
+    });
+  }
+}
+
 // ── Main export ──────────────────────────────────────────────────────────────
 
 export async function exportToPptx(records, month) {
@@ -501,6 +561,7 @@ export async function exportToPptx(records, month) {
     "Shows which recipe runs generated the highest total portions sold.",
     "Portions", aggregateByRecipeRun(validRecords), PURPLE);
 
+  addDetailedRecordsSlide(pptx, validRecords);
   addTableSlide(pptx, validRecords);
   addMarketplaceTableSlide(pptx, validRecords);
   addAppPromotionSlide(pptx, validRecords);
