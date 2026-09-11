@@ -44,7 +44,10 @@ export default function Dashboard() {
   const [downloading, setDownloading] = useState(false);
   const handleDownloadData = async () => {
     setDownloading(true);
-    const filtered = records.filter(r => (r.marketplace || "").trim().toLowerCase() === "chef tables");
+    const filtered = records.filter(r => {
+      const p = (r.promotion || "").trim().toLowerCase();
+      return p.includes("chef") && p.includes("table");
+    });
     await exportDataOnlyPptx(filtered, "Chef Tables");
     setDownloading(false);
   };
