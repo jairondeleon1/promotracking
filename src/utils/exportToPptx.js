@@ -529,15 +529,17 @@ export async function exportDataOnlyPptx(records, stationLabel) {
   pptx.title = "Promotion Records";
 
   const validRecords = records.filter(r => r.portions_sold > 0);
+  // Combine all Chef Table variants into a single "Chef Table" promotion for the promotion-based charts
+  const combinedRecords = validRecords.map(r => ({ ...r, promotion: "Chef Table" }));
   addTitleSlide(pptx, stationLabel);
 
-  const promoData = aggregateByPromotion(validRecords);
+  const promoData = aggregateByPromotion(combinedRecords);
   if (promoData.length) addBarChartSlide(pptx,
     "Total Portions Sold by Promotion",
     "Which promotions drove the highest total volume of portions sold.",
     "Portions", promoData, NAVY);
 
-  const salesData = aggregateSalesByPromotion(validRecords);
+  const salesData = aggregateSalesByPromotion(combinedRecords);
   if (salesData.length) addBarChartSlide(pptx,
     "Total Sales ($) by Promotion",
     "Total dollar sales generated per promotion.",
