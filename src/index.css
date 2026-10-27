@@ -1,34 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    --background: 216 33% 97%;
+    --foreground: 214 43% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 214 43% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 214 43% 14%;
+    --primary: 214 43% 20%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: 214 32% 94%;
+    --secondary-foreground: 214 43% 20%;
+    --muted: 214 30% 95%;
+    --muted-foreground: 215 16% 45%;
+    --accent: 193 80% 94%;
+    --accent-foreground: 197 90% 24%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --border: 214 25% 89%;
+    --input: 214 25% 86%;
+    --ring: 193 100% 42%;
+    --radius: 0.75rem;
+
+    --hero: 214 43% 20%;
+    --hero-foreground: 0 0% 100%;
+    --hero-muted: 214 25% 74%;
+    --highlight: 193 100% 42%;
+    --highlight-foreground: 0 0% 100%;
+
+    --chart-1: 193 100% 42%;
+    --chart-2: 26 85% 57%;
+    --chart-3: 45 89% 55%;
+    --chart-4: 214 43% 32%;
+    --chart-5: 168 64% 40%;
+    --chart-6: 256 60% 62%;
+    --chart-7: 346 77% 60%;
+    --chart-8: 215 16% 70%;
+
+    --font-heading: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -40,30 +56,41 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 214 45% 8%;
+    --foreground: 210 30% 96%;
+    --card: 214 40% 12%;
+    --card-foreground: 210 30% 96%;
+    --popover: 214 40% 12%;
+    --popover-foreground: 210 30% 96%;
+    --primary: 193 100% 42%;
+    --primary-foreground: 214 45% 8%;
+    --secondary: 214 30% 18%;
+    --secondary-foreground: 210 30% 96%;
+    --muted: 214 30% 16%;
+    --muted-foreground: 214 20% 65%;
+    --accent: 193 60% 18%;
+    --accent-foreground: 193 90% 75%;
+    --destructive: 0 62.8% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 214 30% 20%;
+    --input: 214 30% 22%;
+    --ring: 193 100% 42%;
+
+    --hero: 214 45% 12%;
+    --hero-foreground: 0 0% 100%;
+    --hero-muted: 214 20% 65%;
+    --highlight: 193 100% 45%;
+    --highlight-foreground: 214 45% 8%;
+
+    --chart-1: 193 100% 48%;
+    --chart-2: 26 85% 60%;
+    --chart-3: 45 89% 60%;
+    --chart-4: 214 50% 60%;
+    --chart-5: 168 64% 45%;
+    --chart-6: 256 60% 68%;
+    --chart-7: 346 77% 65%;
+    --chart-8: 215 16% 55%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -75,14 +102,12 @@
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body antialiased;
   }
 }

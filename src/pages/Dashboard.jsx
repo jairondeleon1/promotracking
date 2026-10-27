@@ -1,159 +1,107 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart2, Upload, Table2, TrendingUp, RefreshCw, Download, FileSpreadsheet } from "lucide-react";
-
-import { exportToPptx, exportDataOnlyPptx } from "../utils/exportToPptx";
-
+import { RefreshCw, Upload, FilterX, Inbox } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import StatsOverview from "../components/dashboard/StatsOverview";
-import MonthFilter from "../components/dashboard/MonthFilter";
+import { exportToPptx, exportDataOnlyPptx } from "@/utils/exportToPptx";
+import { getRunDate } from "@/lib/runDates";
+import { normKey } from "@/lib/promoAggregations";
+import { applyFilters, buildOptions, getBatches, describeView, CLEARED_FILTERS } from "@/lib/dashboardFilters";
+import useDashboardView from "@/hooks/useDashboardView";
+import TopBar from "@/components/layout/TopBar";
+import DashboardHero from "@/components/dashboard/DashboardHero";
+import FilterBar from "@/components/dashboard/FilterBar";
+import ExportMenu from "@/components/dashboard/ExportMenu";
+import KpiGrid from "@/components/dashboard/KpiGrid";
+import ChartSections from "@/components/dashboard/ChartSections";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import EmptyState from "@/components/dashboard/EmptyState";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBatch, setSelectedBatch] = useState("all");
-  const [batches, setBatches] = useState([]);
-  const [exporting, setExporting] = useState(false);
-  const [exportStation, setExportStation] = useState("all");
-
-  const stations = React.useMemo(() => {
-    const seen = new Set();
-    const list = [];
-    records.forEach(r => {
-      const s = (r.marketplace || "").trim();
-      if (s && !seen.has(s)) { seen.add(s); list.push(s); }
-    });
-    return list.sort((a, b) => a.localeCompare(b));
-  }, [records]);
-
-  const handleExport = async () => {
-    setExporting(true);
-    let filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
-    if (exportStation !== "all") filtered = filtered.filter(r => (r.marketplace || "").trim() === exportStation);
-    const parts = [];
-    if (selectedBatch !== "all") parts.push(batches.find(b => b.id === selectedBatch)?.label || selectedBatch);
-    if (exportStation !== "all") parts.push(exportStation);
-    const label = parts.length ? parts.join(" - ") : "all";
-    await exportToPptx(filtered, label);
-    setExporting(false);
-  };
-
-  const [downloading, setDownloading] = useState(false);
-  const handleDownloadData = async () => {
-    setDownloading(true);
-    const filtered = records.filter(r => {
-      const p = (r.promotion || "").trim().toLowerCase();
-      return p.includes("chef") && p.includes("table");
-    });
-    await exportDataOnlyPptx(filtered, "Chef Tables");
-    setDownloading(false);
-  };
+  const [savedView, updateView] = useDashboardView(user?.id);
 
   const load = async () => {
     setLoading(true);
     const data = await base44.entities.PromotionRecord.list("-created_date", 2000);
-    setRecords(data);
-    // Build a unique list of batches preserving their uploaded order (newest first)
-    const seen = new Set();
-    const batchList = [];
-    data.forEach(r => {
-      if (r.upload_batch_id && !seen.has(r.upload_batch_id)) {
-        seen.add(r.upload_batch_id);
-        batchList.push({ id: r.upload_batch_id, label: r.upload_month || r.upload_batch_id });
-      }
-    });
-    setBatches(batchList);
+    setRecords(data.map((r) => ({ ...r, _date: getRunDate(r) })));
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const filtered = selectedBatch === "all" ? records : records.filter(r => r.upload_batch_id === selectedBatch);
-  const validRecords = filtered.filter(r => r.portions_sold > 0);
+  const batches = useMemo(() => getBatches(records), [records]);
+  const options = useMemo(() => ({
+    marketplaces: buildOptions(records, "marketplace"),
+    regions: buildOptions(records, "region"),
+    promotions: buildOptions(records, "promotion"),
+  }), [records]);
+  const view = useMemo(
+    () => ({ ...savedView, batch: batches.some((b) => b.id === savedView.batch) ? savedView.batch : "all" }),
+    [savedView, batches]
+  );
+  const filtered = useMemo(() => applyFilters(records, view), [records, view]);
+  const valid = useMemo(() => filtered.filter((r) => r.portions_sold > 0), [filtered]);
+
+  const marketplaceCount = new Set(valid.map((r) => normKey(r.marketplace)).filter(Boolean)).size;
+  const summary = loading
+    ? "Loading your latest results…"
+    : `${describeView(view, batches, options, " · ") || "All time"} · ${valid.length.toLocaleString()} promotion runs across ${marketplaceCount} marketplaces`;
+
+  const exportReport = () => exportToPptx(filtered, describeView(view, batches, options, " - ") || "all");
+  const exportChefTables = () => exportDataOnlyPptx(
+    records.filter((r) => {
+      const p = (r.promotion || "").trim().toLowerCase();
+      return p.includes("chef") && p.includes("table");
+    }),
+    "Chef Tables"
+  );
+
+  let body;
+  if (loading) {
+    body = <DashboardSkeleton />;
+  } else if (!records.length) {
+    body = (
+      <EmptyState icon={Inbox} title="No data yet"
+        description={isAdmin ? "Upload your first file to start tracking promotions." : "Promotion results will appear here once data has been published."}
+        action={isAdmin && <Button asChild><Link to="/upload">Upload CSV</Link></Button>} />
+    );
+  } else if (!filtered.length) {
+    body = (
+      <EmptyState icon={FilterX} title="No promotions match these filters"
+        description="Try a wider time range or clear some filters."
+        action={<Button variant="outline" onClick={() => updateView(CLEARED_FILTERS)}>Reset filters</Button>} />
+    );
+  } else {
+    body = (
+      <>
+        <KpiGrid records={valid} hidden={view.hidden} />
+        <ChartSections records={valid} allRecords={filtered} metric={view.metric} hidden={view.hidden} />
+      </>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
-        <div className="max-w-screen-xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Promotion Tracking Dashboard</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Monthly promotion analytics &amp; insights</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={load} className="gap-2 text-slate-600">
-              <RefreshCw className="w-4 h-4" /> Refresh
-            </Button>
-            <Select value={exportStation} onValueChange={setExportStation}>
-              <SelectTrigger className="w-48 h-8 text-xs bg-white border-slate-200">
-                <SelectValue placeholder="All stations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stations</SelectItem>
-                {stations.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || records.length === 0} className="gap-2 text-slate-600">
-              {exporting ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
-              Export PPTX
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDownloadData} disabled={downloading || records.length === 0} className="gap-2 text-slate-600">
-              {downloading ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
-              Download Data
-            </Button>
-            <Link to="/upload">
-              <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                <Upload className="w-4 h-4" /> Upload CSV
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Nav tabs */}
-      <div className="bg-white border-b border-slate-200 px-6">
-        <div className="max-w-screen-xl mx-auto flex gap-1">
-          {[
-            { label: "Overview", icon: BarChart2, to: "/" },
-            { label: "Upload Data", icon: Upload, to: "/upload" },
-            { label: "Data Table", icon: Table2, to: "/data-table" },
-          ].map(({ label, icon: Icon, to }) => (
-            <Link key={to} to={to}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                (to === "/" ? window.location.pathname === "/" || window.location.pathname === "" : window.location.pathname === to)
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}>
-              <Icon className="w-4 h-4" />{label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="max-w-screen-xl mx-auto px-6 py-6">
-        <MonthFilter batches={batches} selected={selectedBatch} onChange={setSelectedBatch} />
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
-          </div>
-        ) : records.length === 0 ? (
-          <Card className="mt-8">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <Upload className="w-12 h-12 text-slate-300 mb-4" />
-              <h2 className="text-lg font-semibold text-slate-700 mb-2">No data yet</h2>
-              <p className="text-slate-500 mb-4">Upload your first CSV file to start tracking promotions.</p>
-              <Link to="/upload">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">Upload CSV</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <StatsOverview records={validRecords} allRecords={filtered} />
+    <div className="min-h-screen bg-background">
+      <TopBar isAdmin={isAdmin}>
+        <Button variant="ghost" size="icon" onClick={load} disabled={loading} aria-label="Refresh data"
+          className="text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground">
+          <RefreshCw className={loading ? "animate-spin" : ""} />
+        </Button>
+        <ExportMenu disabled={loading || !records.length} onExportReport={exportReport} onExportChefTables={exportChefTables} />
+        {isAdmin && (
+          <Button asChild className="hidden bg-highlight text-highlight-foreground hover:bg-highlight/90 sm:inline-flex">
+            <Link to="/upload"><Upload /> Upload CSV</Link>
+          </Button>
         )}
-      </div>
+      </TopBar>
+      <DashboardHero user={user} summary={summary} />
+      <FilterBar view={view} batches={batches} options={options} onChange={updateView} onClear={() => updateView(CLEARED_FILTERS)} />
+      <main className="mx-auto max-w-screen-xl space-y-10 px-4 py-8 sm:px-6">{body}</main>
     </div>
   );
 }

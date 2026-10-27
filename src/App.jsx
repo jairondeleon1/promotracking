@@ -8,6 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Dashboard from './pages/Dashboard';
 import UploadPage from './pages/UploadPage';
 import DataTablePage from './pages/DataTablePage';
+import AdminRoute from '@/components/AdminRoute';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -32,8 +33,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
-      <Route path="/upload" element={<UploadPage />} />
-      <Route path="/data-table" element={<DataTablePage />} />
+      <Route path="/upload" element={<AdminRoute><UploadPage /></AdminRoute>} />
+      <Route path="/data-table" element={<AdminRoute><DataTablePage /></AdminRoute>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
